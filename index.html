@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinTrace Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --bg-base: #0a0e17;
+    --bg-panel: #0f1521;
+    --bg-card: #141c2e;
+    --bg-input: #0d1220;
+    --border: #1e2d4a;
+    --border-bright: #2a4070;
+    --accent: #3b82f6;
+    --accent-glow: #60a5fa;
+    --accent-dim: #1d4ed8;
+    --green: #10b981;
+    --green-glow: #34d399;
+    --red: #ef4444;
+    --red-glow: #f87171;
+    --yellow: #f59e0b;
+    --yellow-glow: #fbbf24;
+    --purple: #8b5cf6;
+    --cyan: #06b6d4;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #4a5568;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-ui: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Ambient glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(59,130,246,0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glass-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+  }
+
+  .glass-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  /* Code editor */
+  #code-input {
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    line-height: 1.7;
+    background: var(--bg-input);
+    color: #c9d1d9;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    resize: none;
+    outline: none;
+    tab-size: 2;
+    caret-color: var(--accent-glow);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    padding: 20px;
+    min-height: 320px;
+  }
+  #code-input:focus {
+    border-color: var(--accent-dim);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1), inset 0 0 30px rgba(59,130,246,0.02);
+  }
+  #code-input::placeholder { color: var(--text-muted); }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }
+
+  /* Buttons */
+  .btn-primary {
+    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 22px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(59,130,246,0.35); }
+  .btn-primary:hover::before { opacity: 1; }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--border-bright); color: var(--text-primary); background: rgba(255,255,255,0.03); }
+
+  /* Select dropdown */
+  select {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 9px 32px 9px 12px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%2364748b'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  select:focus { border-color: var(--accent-dim); }
+  select option { background: #1a2540; }
+
+  /* Result sections */
+  .result-section {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+  .result-section:hover { border-color: var(--border-bright); }
+
+  .section-header {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background 0.15s;
+  }
+  .section-header:hover { background: rgba(255,255,255,0.02); }
+  .section-header.expanded { border-bottom-color: var(--border); }
+
+  .section-body {
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.8;
+    display: none;
+  }
+  .section-body.visible { display: block; }
+
+  /* Badge */
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+  .badge-error { background: rgba(239,68,68,0.15); color: var(--red-glow); border: 1px solid rgba(239,68,68,0.25); }
+  .badge-warn  { background: rgba(245,158,11,0.15); color: var(--yellow-glow); border: 1px solid rgba(245,158,11,0.25); }
+  .badge-info  { background: rgba(59,130,246,0.15); color: var(--accent-glow); border: 1px solid rgba(59,130,246,0.25); }
+  .badge-ok    { background: rgba(16,185,129,0.15); color: var(--green-glow); border: 1px solid rgba(16,185,129,0.25); }
+
+  /* Issue items */
+  .issue-item {
+    padding: 10px 14px;
+    border-radius: 7px;
+    margin-bottom: 8px;
+    border-left: 3px solid transparent;
+    background: rgba(255,255,255,0.02);
+    transition: background 0.15s;
+  }
+  .issue-item:hover { background: rgba(255,255,255,0.04); }
+  .issue-item:last-child { margin-bottom: 0; }
+  .issue-error  { border-left-color: var(--red); }
+  .issue-warn   { border-left-color: var(--yellow); }
+  .issue-info   { border-left-color: var(--accent); }
+  .issue-ok     { border-left-color: var(--green); }
+
+  .issue-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .label-error  { color: var(--red-glow); }
+  .label-warn   { color: var(--yellow-glow); }
+  .label-info   { color: var(--accent-glow); }
+  .label-ok     { color: var(--green-glow); }
+
+  /* Score ring */
+  .score-ring {
+    position: relative;
+    width: 80px;
+    height: 80px;
+  }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring .score-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  /* Loading animation */
+  .pulse-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulseDot 1.4s ease-in-out infinite;
+  }
+  .pulse-dot:nth-child(2) { animation-delay: 0.2s; background: var(--purple); }
+  .pulse-dot:nth-child(3) { animation-delay: 0.4s; background: var(--cyan); }
+  @keyframes pulseDot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+
+  /* Typing effect */
+  @keyframes fadeInUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .fade-in { animation: fadeInUp 0.35s ease forwards; }
+
+  /* Tab strip */
+  .tab { 
+    padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; color: var(--text-secondary);
+    border: 1px solid transparent;
+  }
+  .tab.active { background: rgba(59,130,246,0.12); color: var(--accent-glow); border-color: rgba(59,130,246,0.2); }
+  .tab:hover:not(.active) { color: var(--text-primary); }
+
+  /* Language badge */
+  .lang-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    background: rgba(139,92,246,0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(139,92,246,0.2);
+  }
+
+  /* Stats bar */
+  .stat-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 20px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    font-size: 12px; font-family: var(--font-mono);
+  }
+
+  /* Logo glow */
+  .logo-glow {
+    text-shadow: 0 0 20px rgba(59,130,246,0.5), 0 0 40px rgba(59,130,246,0.2);
+  }
+
+  /* Metric cards */
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    text-align: center;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .metric-card:hover { border-color: var(--border-bright); transform: translateY(-1px); }
+
+  /* Code highlight in results */
+  .inline-code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: rgba(59,130,246,0.1);
+    color: var(--accent-glow);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+  /* Tooltip */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: #1e2d4a; color: var(--text-primary);
+    font-size: 11px; font-family: var(--font-mono);
+    padding: 4px 10px; border-radius: 5px; white-space: nowrap;
+    border: 1px solid var(--border-bright); pointer-events: none; z-index: 99;
+  }
+
+  /* Fixed header */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(10,14,23,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Resize handle */
+  .resize-handle {
+    height: 6px; cursor: ns-resize;
+    background: var(--border);
+    border-radius: 3px; margin: 4px 0;
+    transition: background 0.2s;
+  }
+  .resize-handle:hover { background: var(--accent-dim); }
+
+  .highlight-line {
+    background: rgba(59,130,246,0.06);
+    border-left: 2px solid var(--accent);
+    padding-left: 8px;
+    margin-left: -8px;
+    display: block;
+  }
+
+  /* Summary score color */
+  .score-excellent { color: var(--green-glow); }
+  .score-good      { color: #a3e635; }
+  .score-fair      { color: var(--yellow-glow); }
+  .score-poor      { color: var(--red-glow); }
+</style>
+</head>
+<body>
+<div class="relative z-10 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header>
+    <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#1d4ed8,#06b6d4)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 5l3 3-3 3M8 11h5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-bold text-base logo-glow" style="font-family:var(--font-ui);letter-spacing:-0.3px">Fin<span style="color:var(--accent)">.</span>Trace</div>
+          <div class="text-xs" style="color:var(--text-muted);font-family:var(--font-mono);margin-top:-2px">AI Code Assistant</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="stat-pill hidden sm:flex" id="model-display">
+          <span style="color:var(--text-muted)">●</span>
+          <span style="color:var(--text-secondary)" id="active-model-name">stepfun/step-3.5-flash</span>
+        </div>
+        <a href="https://openrouter.ai" target="_blank" class="btn-ghost text-xs hidden sm:block">OpenRouter ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 grid gap-6" style="grid-template-columns:1fr 1fr; grid-template-rows:auto 1fr auto;">
+
+    <!-- Left column -->
+    <div class="flex flex-col gap-4" style="grid-column:1; grid-row:1/3;">
+
+      <!-- Config bar -->
+      <div class="glass-panel p-4 flex flex-wrap gap-3 items-center">
+        <!-- Model select -->
+        <div class="flex flex-col gap-1 flex-1 min-w-48">
+          <label class="text-xs" style="color:var(--text-muted);font-family:var(--font-mono)">MODEL</label>
+          <select id="model-select" onchange="updateModelDisplay()">
+            <optgroup label="── Fast & Free ──">
+              <option value="stepfun/step-3.5-flash:free">stepfun/step-3.5-flash:free</option>
+              <option value="nvidia/nemotron-3-super-120b-a12b:free">nvidia/nemotron-3-super-120b:free</option>
+              <option value="google/gemma-3-27b-it:free">google/gemma-3-27b-it:free</option>
+              <option value="meta-llama/llama-4-scout:free">meta-llama/llama-4-scout:free</option>
+              <option value="deepseek/deepseek-r1-zero:free">deepseek/deepseek-r1-zero:free</option>
+              <option value="qwen/qwen3-30b-a3b:free">qwen/qwen3-30b-a3b:free</option>
+              <option value="mistralai/mistral-7b-instruct:free">mistralai/mistral-7b-instruct:free</option>
+            </optgroup>
+            <optgroup label="── Premium ──">
+              <option value="openai/gpt-4o">openai/gpt-4o</option>
+              <option value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet</option>
+              <option value="google/gemini-2.5-pro-preview">google/gemini-2.5-pro-preview</option>
+              <option value="deepseek/deepseek-r1">deepseek/deepseek-r1</option>
+              <option value="meta-llama/llama-3.3-70b-instruct">meta-llama/llama-3.3-70b</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Language -->
+        <div class="flex flex-col gap-1 min-w-36">
+          <label class="text-xs" style="color:var(--text-muted);font-family:var(--font-mono)">LANGUAGE</label>
+          <select id="lang-select">
+            <option value="auto">Auto-detect</option>
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="python">Python</option>
+            <option value="java">Java</option>
+            <option value="csharp">C#</option>
+            <option value="cpp">C++</option>
+            <option value="go">Go</option>
+            <option value="rust">Rust</option>
+            <option value="php">PHP</option>
+            <option value="ruby">Ruby</option>
+            <option value="swift">Swift</option>
+            <option value="kotlin">Kotlin</option>
+            <option value="sql">SQL</option>
+            <option value="html">HTML/CSS</option>
+          </select>
+        </div>
+
+        <!-- API Key -->
+        <div class="flex flex-col gap-1 flex-1 min-w-48">
+          <label class="text-xs" style="color:var(--text-muted);font-family:var(--font-mono)">API KEY</label>
+          <input type="password" id="api-key" placeholder="sk-or-v1-..." style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:var(--font-mono);font-size:12px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent-dim)'" onblur="this.style.borderColor='var(--border)'"/>
+        </div>
+      </div>
+
+      <!-- Analysis type -->
+      <div class="flex gap-2 flex-wrap">
+        <div class="tab active" onclick="setTab(this,'full')" data-mode="full">🔍 Full Analysis</div>
+        <div class="tab" onclick="setTab(this,'security')" data-mode="security">🔐 Security</div>
+        <div class="tab" onclick="setTab(this,'performance')" data-mode="performance">⚡ Performance</div>
+        <div class="tab" onclick="setTab(this,'refactor')" data-mode="refactor">♻️ Refactor</div>
+        <div class="tab" onclick="setTab(this,'explain')" data-mode="explain">📖 Explain</div>
+      </div>
+
+      <!-- Code editor -->
+      <div class="flex-1 flex flex-col">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs" style="color:var(--text-muted);font-family:var(--font-mono)">INPUT</span>
+            <span class="lang-tag" id="detected-lang">auto</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs" style="color:var(--text-muted);font-family:var(--font-mono)" id="char-count">0 chars</span>
+            <button class="btn-ghost text-xs" onclick="clearCode()" data-tip="Clear">✕ Clear</button>
+            <button class="btn-ghost text-xs" onclick="pasteCode()" data-tip="Paste">⎘ Paste</button>
+          </div>
+        </div>
+        <textarea id="code-input" placeholder="// Paste or type your code here...
+// JIAT will analyze: bugs, typos, logic errors,
+// security flaws, performance issues, and more.
+
+function calculateTotal(items) {
+  let total = 0;
+  for (let i = 0; i <= items.lenght; i++) {
+    total += items[i].prise;
+  }
+  return ttal;
+}" oninput="onCodeChange(this)"></textarea>
+      </div>
+
+      <!-- Analyze button -->
+      <div class="flex items-center gap-3">
+        <button class="btn-primary flex items-center gap-2 flex-1 justify-center" id="analyze-btn" onclick="runAnalysis()">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <circle cx="7.5" cy="7.5" r="6" stroke="white" stroke-width="1.5"/>
+            <path d="M7.5 4.5v3.5l2 2" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Analyze Code
+        </button>
+        <button class="btn-ghost flex items-center gap-2" onclick="loadSampleCode()" data-tip="Load demo code">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 4h9M2 6.5h6M2 9h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Sample
+        </button>
+      </div>
+    </div>
+
+    <!-- Right column: Results -->
+    <div class="flex flex-col gap-4" id="results-panel" style="grid-column:2; grid-row:1/3;">
+
+      <!-- Empty state -->
+      <div id="empty-state" class="glass-panel flex flex-col items-center justify-center gap-4 h-full py-16">
+        <div style="width:64px;height:64px;border-radius:16px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M8 10l4 4-4 4M14 18h6" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="2" y="2" width="24" height="24" rx="6" stroke="#1e3a5f" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="text-center">
+          <div class="font-semibold text-base mb-1" style="color:var(--text-secondary)">Ready to analyze</div>
+          <div class="text-sm" style="color:var(--text-muted)">Paste your code and click <span class="inline-code">Analyze Code</span></div>
+        </div>
+        <div class="flex flex-wrap gap-2 justify-center mt-2">
+          <span class="badge badge-error">Bug Detection</span>
+          <span class="badge badge-warn">Typos & Spelling</span>
+          <span class="badge badge-info">Logic Errors</span>
+          <span class="badge badge-ok">Best Practices</span>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="loading-state" class="glass-panel flex flex-col items-center justify-center gap-5 h-full py-16 hidden">
+        <div class="flex gap-3">
+          <div class="pulse-dot"></div>
+          <div class="pulse-dot"></div>
+          <div class="pulse-dot"></div>
+        </div>
+        <div class="text-center">
+          <div class="font-semibold" style="color:var(--text-secondary)" id="loading-msg">Analyzing your code...</div>
+          <div class="text-xs mt-1" style="color:var(--text-muted);font-family:var(--font-mono)" id="loading-sub">Running static analysis</div>
+        </div>
+      </div>
+
+      <!-- Results state -->
+      <div id="results-state" class="flex flex-col gap-4 hidden">
+
+        <!-- Score header -->
+        <div class="glass-panel p-5">
+          <div class="flex items-center gap-5">
+            <div class="score-ring flex-shrink-0">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" stroke="#1e2d4a" stroke-width="6" fill="none"/>
+                <circle cx="40" cy="40" r="32" stroke="#3b82f6" stroke-width="6" fill="none"
+                  stroke-dasharray="201" stroke-dashoffset="201" stroke-linecap="round"
+                  id="score-circle" style="transition:stroke-dashoffset 1s ease, stroke 0.5s"/>
+              </svg>
+              <div class="score-num" id="score-num">—</div>
+            </div>
+            <div class="flex-1">
+              <div class="text-xl font-bold mb-1" id="score-label">—</div>
+              <div class="text-sm mb-3" style="color:var(--text-secondary)" id="score-summary">Analysis complete</div>
+              <div class="flex flex-wrap gap-2" id="score-badges"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics row -->
+        <div class="grid grid-cols-4 gap-3" id="metrics-row"></div>
+
+        <!-- Result sections -->
+        <div id="sections-container" class="flex flex-col gap-3"></div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn-primary text-sm flex items-center gap-2" onclick="copyResults()">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="4" y="4" width="8" height="8" rx="1.5" stroke="white" stroke-width="1.3"/><path d="M4 4V2.5A1.5 1.5 0 015.5 1H10a1.5 1.5 0 011.5 1.5V7A1.5 1.5 0 0110 8.5H8.5" stroke="white" stroke-width="1.3"/></svg>
+            Copy Report
+          </button>
+          <button class="btn-ghost text-sm" onclick="runAnalysis()">↺ Re-analyze</button>
+          <button class="btn-ghost text-sm" onclick="exportJSON()">↓ Export JSON</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t text-center py-3 text-xs" style="border-color:var(--border);color:var(--text-muted);font-family:var(--font-mono)">
+    FinTrace Assistant · Powered by OpenRouter · Built for Fintech Developers
+  </footer>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let currentMode = 'full';
+let lastResults = null;
+const loadingMessages = [
+  ['Scanning for syntax issues...', 'Tokenizing source code'],
+  ['Hunting down typos...', 'Checking identifiers & variables'],
+  ['Analyzing control flow...', 'Evaluating logical paths'],
+  ['Checking best practices...', 'Comparing against standards'],
+  ['Running security audit...', 'Detecting vulnerabilities'],
+  ['Measuring complexity...', 'Estimating maintainability'],
+];
+
+// ─── UI helpers ──────────────────────────────────────────────────────────────
+function setTab(el, mode) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentMode = mode;
+}
+
+function updateModelDisplay() {
+  const v = document.getElementById('model-select').value;
+  const short = v.split('/').pop().replace(':free','');
+  document.getElementById('active-model-name').textContent = short;
+}
+
+function onCodeChange(ta) {
+  document.getElementById('char-count').textContent = ta.value.length + ' chars';
+  const lang = detectLanguage(ta.value);
+  document.getElementById('detected-lang').textContent = lang;
+}
+
+function clearCode() {
+  document.getElementById('code-input').value = '';
+  document.getElementById('char-count').textContent = '0 chars';
+  document.getElementById('detected-lang').textContent = 'auto';
+  showEmpty();
+}
+
+async function pasteCode() {
+  try {
+    const text = await navigator.clipboard.readText();
+    document.getElementById('code-input').value = text;
+    onCodeChange(document.getElementById('code-input'));
+  } catch(e) { alert('Clipboard access denied.'); }
+}
+
+function detectLanguage(code) {
+  const sel = document.getElementById('lang-select').value;
+  if (sel !== 'auto') return sel;
+  if (/def |import |print\(|#/.test(code)) return 'python';
+  if (/fun |val |var |println/.test(code)) return 'kotlin';
+  if (/func |fmt\.|package main/.test(code)) return 'go';
+  if (/fn |let mut|println!/.test(code)) return 'rust';
+  if (/<[a-z]+[\s>]/.test(code) && /style=|class=/.test(code)) return 'html';
+  if (/SELECT|INSERT|UPDATE|FROM/.test(code.toUpperCase())) return 'sql';
+  if (/public class|System\.out|@Override/.test(code)) return 'java';
+  if (/namespace|using System|Console\.Write/.test(code)) return 'csharp';
+  if (/:\s*(string|number|boolean|interface)\b/.test(code)) return 'typescript';
+  if (/const |let |var |=>|function/.test(code)) return 'javascript';
+  if (/#include|std::|cout/.test(code)) return 'cpp';
+  return 'auto';
+}
+
+function loadSampleCode() {
+  const sample = `function calculateDiscount(items, userType) {
+  let totol = 0;
+  let discaunt = 0;
+  
+  for (let i = 0; i <= items.length; i++) {
+    totol += items[i].price;
+  }
+  
+  if (userType = "premium") {
+    discaunt = totol * 0.2;
+  } else if (userType == "regular") {
+    discaunt = totol * 0.1
+  }
+  
+  // TODO: add tax calculation
+  const finalprice = totol - discaunt;
+  console.log("Total: " + totol)
+  return finalPrice;
+}
+
+async function fetchUserData(userId) {
+  const response = await fetch('http://api.example.com/users/' + userId);
+  const data = response.json();
+  return data;
+}
+
+const pasword = "admin123";
+eval(userInput);`;
+  document.getElementById('code-input').value = sample;
+  onCodeChange(document.getElementById('code-input'));
+}
+
+// ─── Panels ──────────────────────────────────────────────────────────────────
+function showEmpty() {
+  document.getElementById('empty-state').classList.remove('hidden');
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('results-state').classList.add('hidden');
+}
+function showLoading() {
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('loading-state').classList.remove('hidden');
+  document.getElementById('results-state').classList.add('hidden');
+  cycleLoadingMessages();
+}
+function showResults() {
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('results-state').classList.remove('hidden');
+}
+
+let loadInterval;
+function cycleLoadingMessages() {
+  let idx = 0;
+  clearInterval(loadInterval);
+  function update() {
+    const [msg, sub] = loadingMessages[idx % loadingMessages.length];
+    document.getElementById('loading-msg').textContent = msg;
+    document.getElementById('loading-sub').textContent = sub;
+    idx++;
+  }
+  update();
+  loadInterval = setInterval(update, 2000);
+}
+
+// ─── Prompt builder ──────────────────────────────────────────────────────────
+function buildPrompt(code, lang, mode) {
+  const langStr = lang !== 'auto' ? `Language: ${lang}` : 'Auto-detect the language.';
+  const modeInstructions = {
+    full: `Perform a COMPREHENSIVE code analysis. Check ALL of the following:
+1. SYNTAX ERRORS – invalid syntax, missing brackets/semicolons/colons
+2. SPELLING/TYPO ERRORS – misspelled variable names, function names, keywords, identifiers (e.g. "lenght" → "length", "prise" → "price")
+3. LOGICAL ERRORS – off-by-one, wrong operators, incorrect conditionals (= vs ==), unreachable code
+4. RUNTIME ERRORS – null/undefined access, type mismatches, division by zero
+5. SECURITY ISSUES – hardcoded secrets, eval usage, SQL injection, insecure HTTP
+6. PERFORMANCE – unnecessary loops, memory leaks, unoptimized patterns
+7. BEST PRACTICES – naming conventions, DRY violations, missing error handling, TODO/FIXME
+8. CODE QUALITY – complexity, readability, missing return types`,
+    security: `Focus ONLY on SECURITY vulnerabilities:
+- Hardcoded credentials, tokens, passwords
+- Injection flaws (SQL, command, eval)
+- Insecure HTTP endpoints, missing HTTPS
+- Sensitive data exposure
+- Insecure dependencies/imports
+- Authentication/authorization issues`,
+    performance: `Focus ONLY on PERFORMANCE issues:
+- Algorithmic complexity (O(n²) loops, nested iterations)
+- Memory leaks and unnecessary allocations
+- Redundant computations inside loops
+- Missing caching opportunities
+- Inefficient data structures
+- Async/await anti-patterns`,
+    refactor: `Focus ONLY on CODE QUALITY and REFACTORING opportunities:
+- DRY violations (duplicated code blocks)
+- Long functions / high complexity
+- Poor naming (single-letter vars, vague names)
+- Magic numbers/strings
+- Missing abstractions
+- Suggest modern idioms/patterns`,
+    explain: `Explain what this code does:
+- Overall purpose and functionality
+- Key algorithms or logic used
+- Data flow and dependencies
+- Potential edge cases
+- A brief complexity analysis`,
+  };
+
+  return `You are JIAT, an expert code analyzer. ${langStr}
+
+${modeInstructions[mode]}
+
+CODE TO ANALYZE:
+\`\`\`
+${code}
+\`\`\`
+
+Respond ONLY with a valid JSON object (no markdown, no code fences) with this exact structure:
+{
+  "language": "detected language",
+  "score": <0-100 integer quality score>,
+  "summary": "one sentence overall summary",
+  "metrics": {
+    "bugs": <count>,
+    "warnings": <count>,
+    "suggestions": <count>,
+    "lines": <count>
+  },
+  "sections": [
+    {
+      "id": "unique_id",
+      "title": "Section Title",
+      "type": "error|warning|info|success",
+      "icon": "emoji",
+      "issues": [
+        {
+          "type": "error|warning|info|success",
+          "title": "Issue title",
+          "description": "Detailed explanation",
+          "line": "line number or range or null",
+          "fix": "suggested fix or null"
+        }
+      ]
+    }
+  ],
+  "fixedCode": "complete corrected code with all issues fixed (or null if explain mode)"
+}
+
+Be THOROUGH. Find every single issue including minor typos. For spelling errors in identifiers, always flag them.`;
+}
+
+// ─── Main analysis ────────────────────────────────────────────────────────────
+async function runAnalysis() {
+  const code = document.getElementById('code-input').value.trim();
+  if (!code) { alert('Please enter some code to analyze.'); return; }
+
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey) { alert('Please enter your OpenRouter API key.'); return; }
+
+  const model = document.getElementById('model-select').value;
+  const lang = detectLanguage(code);
+  const mode = currentMode;
+
+  document.getElementById('analyze-btn').disabled = true;
+  showLoading();
+
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://jiat-code.epic.lk',
+        'X-Title': 'FinTrace Assistant',
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        messages: [{ role: 'user', content: buildPrompt(code, lang, mode) }],
+      }),
+    });
+
+    clearInterval(loadInterval);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+    
+    // Strip possible markdown fences
+    const clean = raw.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+    let result;
+    try { result = JSON.parse(clean); }
+    catch(e) {
+      // Try to extract JSON
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) result = JSON.parse(match[0]);
+      else throw new Error('Could not parse AI response as JSON.');
+    }
+
+    lastResults = result;
+    renderResults(result);
+    showResults();
+
+  } catch(err) {
+    clearInterval(loadInterval);
+    showEmpty();
+    alert('Analysis failed: ' + err.message);
+  } finally {
+    document.getElementById('analyze-btn').disabled = false;
+  }
+}
+
+// ─── Render results ───────────────────────────────────────────────────────────
+function renderResults(r) {
+  // Score ring
+  const score = Math.min(100, Math.max(0, r.score || 0));
+  const circle = document.getElementById('score-circle');
+  const circ = 2 * Math.PI * 32;
+  const offset = circ - (score / 100) * circ;
+  setTimeout(() => {
+    circle.style.strokeDashoffset = offset;
+    if (score >= 80) circle.style.stroke = '#10b981';
+    else if (score >= 60) circle.style.stroke = '#a3e635';
+    else if (score >= 40) circle.style.stroke = '#f59e0b';
+    else circle.style.stroke = '#ef4444';
+  }, 100);
+
+  const numEl = document.getElementById('score-num');
+  numEl.textContent = score;
+  numEl.className = 'score-num ' + (score>=80?'score-excellent':score>=60?'score-good':score>=40?'score-fair':'score-poor');
+
+  const label = score>=80?'Excellent':score>=60?'Good':score>=40?'Fair':'Needs Work';
+  document.getElementById('score-label').textContent = label;
+  document.getElementById('score-summary').textContent = r.summary || '';
+
+  // Badges
+  const badges = document.getElementById('score-badges');
+  badges.innerHTML = '';
+  if (r.language) badges.innerHTML += `<span class="badge badge-info">${r.language}</span>`;
+  const m = r.metrics || {};
+  if (m.bugs > 0) badges.innerHTML += `<span class="badge badge-error">${m.bugs} bug${m.bugs!==1?'s':''}</span>`;
+  if (m.warnings > 0) badges.innerHTML += `<span class="badge badge-warn">${m.warnings} warning${m.warnings!==1?'s':''}</span>`;
+  if (m.suggestions > 0) badges.innerHTML += `<span class="badge badge-ok">${m.suggestions} suggestion${m.suggestions!==1?'s':''}</span>`;
+
+  // Metrics
+  const metrics = document.getElementById('metrics-row');
+  metrics.innerHTML = `
+    <div class="metric-card">
+      <div class="text-lg font-bold" style="color:var(--red-glow);font-family:var(--font-mono)">${m.bugs||0}</div>
+      <div class="text-xs mt-1" style="color:var(--text-muted)">Bugs</div>
+    </div>
+    <div class="metric-card">
+      <div class="text-lg font-bold" style="color:var(--yellow-glow);font-family:var(--font-mono)">${m.warnings||0}</div>
+      <div class="text-xs mt-1" style="color:var(--text-muted)">Warnings</div>
+    </div>
+    <div class="metric-card">
+      <div class="text-lg font-bold" style="color:var(--accent-glow);font-family:var(--font-mono)">${m.suggestions||0}</div>
+      <div class="text-xs mt-1" style="color:var(--text-muted)">Suggestions</div>
+    </div>
+    <div class="metric-card">
+      <div class="text-lg font-bold" style="color:var(--text-secondary);font-family:var(--font-mono)">${m.lines||'—'}</div>
+      <div class="text-xs mt-1" style="color:var(--text-muted)">Lines</div>
+    </div>`;
+
+  // Sections
+  const container = document.getElementById('sections-container');
+  container.innerHTML = '';
+
+  if (r.sections && r.sections.length > 0) {
+    r.sections.forEach((sec, si) => {
+      const issueCount = (sec.issues || []).length;
+      const colorMap = { error:'var(--red)', warning:'var(--yellow)', info:'var(--accent)', success:'var(--green)' };
+      const bgMap = { error:'rgba(239,68,68,0.06)', warning:'rgba(245,158,11,0.06)', info:'rgba(59,130,246,0.06)', success:'rgba(16,185,129,0.06)' };
+      const badgeClass = { error:'badge-error', warning:'badge-warn', info:'badge-info', success:'badge-ok' };
+
+      const sectionEl = document.createElement('div');
+      sectionEl.className = 'result-section fade-in';
+      sectionEl.style.animationDelay = (si * 0.07) + 's';
+
+      const issuesHTML = (sec.issues || []).map(issue => {
+        const itype = issue.type || sec.type || 'info';
+        return `<div class="issue-item issue-${itype}">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1">
+              <div class="issue-label label-${itype}">${itype.toUpperCase()}${issue.line ? ` · LINE ${issue.line}` : ''}</div>
+              <div class="font-medium text-sm mb-1" style="color:var(--text-primary)">${escHtml(issue.title)}</div>
+              <div class="text-xs" style="color:var(--text-secondary);line-height:1.7">${escHtml(issue.description)}</div>
+              ${issue.fix ? `<div class="mt-2 text-xs" style="color:var(--green-glow)">💡 Fix: ${escHtml(issue.fix)}</div>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      sectionEl.innerHTML = `
+        <div class="section-header expanded" style="background:${bgMap[sec.type]||'transparent'}" onclick="toggleSection(this)">
+          <span style="font-size:18px">${sec.icon || '📋'}</span>
+          <span class="font-semibold text-sm flex-1" style="color:var(--text-primary)">${escHtml(sec.title)}</span>
+          ${issueCount > 0 ? `<span class="badge ${badgeClass[sec.type]||'badge-info'}">${issueCount}</span>` : ''}
+          <svg class="chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" style="color:var(--text-muted);transition:transform 0.2s;transform:rotate(0deg)"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="section-body visible" style="background:var(--bg-input)">${issuesHTML || '<div style="color:var(--text-muted);font-size:12px">No issues found in this category.</div>'}</div>`;
+      container.appendChild(sectionEl);
+    });
+  }
+
+  // Fixed code section
+  if (r.fixedCode && r.fixedCode !== document.getElementById('code-input').value) {
+    const fixEl = document.createElement('div');
+    fixEl.className = 'result-section fade-in';
+    fixEl.innerHTML = `
+      <div class="section-header" onclick="toggleSection(this)" style="background:rgba(16,185,129,0.05)">
+        <span style="font-size:18px">✅</span>
+        <span class="font-semibold text-sm flex-1" style="color:var(--text-primary)">Fixed Code</span>
+        <button class="btn-ghost text-xs" onclick="applyFix(event)">Apply Fix</button>
+        <svg class="chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" style="color:var(--text-muted);transition:transform 0.2s;transform:rotate(-90deg)"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="section-body" style="background:var(--bg-input)">
+        <pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;color:#c9d1d9;line-height:1.7">${escHtml(r.fixedCode)}</pre>
+      </div>`;
+    container.appendChild(fixEl);
+  }
+}
+
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  const isOpen = body.classList.contains('visible');
+  if (isOpen) {
+    body.classList.remove('visible');
+    header.classList.remove('expanded');
+    chevron.style.transform = 'rotate(-90deg)';
+  } else {
+    body.classList.add('visible');
+    header.classList.add('expanded');
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+function applyFix(e) {
+  e.stopPropagation();
+  if (lastResults?.fixedCode) {
+    document.getElementById('code-input').value = lastResults.fixedCode;
+    onCodeChange(document.getElementById('code-input'));
+  }
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function copyResults() {
+  if (!lastResults) return;
+  let text = `FinTrace Analysis Report\n${'='.repeat(40)}\n`;
+  text += `Score: ${lastResults.score}/100\n`;
+  text += `Summary: ${lastResults.summary}\n\n`;
+  (lastResults.sections||[]).forEach(s => {
+    text += `\n## ${s.title}\n`;
+    (s.issues||[]).forEach(i => {
+      text += `  [${(i.type||'').toUpperCase()}]${i.line?' Line '+i.line+':':''} ${i.title}\n`;
+      text += `  ${i.description}\n`;
+      if (i.fix) text += `  Fix: ${i.fix}\n`;
+    });
+  });
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target.closest('button');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copied!';
+    setTimeout(() => btn.innerHTML = orig, 1500);
+  });
+}
+
+function exportJSON() {
+  if (!lastResults) return;
+  const blob = new Blob([JSON.stringify(lastResults, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'jiat-analysis.json';
+  a.click();
+}
+
+// Responsive: stack on small screens
+function handleResize() {
+  const main = document.querySelector('main');
+  if (window.innerWidth < 900) {
+    main.style.gridTemplateColumns = '1fr';
+    document.querySelector('[style*="grid-column:2"]') && 
+      (document.getElementById('results-panel').style.gridColumn = '1');
+  } else {
+    main.style.gridTemplateColumns = '1fr 1fr';
+    document.getElementById('results-panel').style.gridColumn = '2';
+  }
+}
+window.addEventListener('resize', handleResize);
+handleResize();
+
+// Init
+updateModelDisplay();
+</script>
+</body>
+</html>
