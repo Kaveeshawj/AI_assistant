@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinTrace</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root{
+  --bg:#eef2fa; --surf:#fff; --surf2:#f5f7fd; --surf3:#edf1f8;
+  --brd:#dbe3f0; --brd2:#bfcde8;
+  --navy:#0b1d3a; --navy2:#122444; --navy3:#1a3260;
+  --blue:#1a56db; --blue2:#2563eb; --blue-lt:#e8f0fe;
+  --teal:#0d9488; --teal-lt:#e6faf8;
+  --red:#dc2626; --red-lt:#fef2f2;
+  --amber:#d97706; --amber-lt:#fffbeb;
+  --green:#059669; --green-lt:#f0fdf4;
+  --purple:#6d28d9; --purple-lt:#f5f3ff;
+  --gold:#b45309; --gold-lt:#fef9ee;
+  --t1:#0b1d3a; --t2:#2d4a7a; --t3:#6e88b0;
+  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+  --r:10px; --rs:7px;
+  --sh:0 1px 3px rgba(11,29,58,.06),0 4px 14px rgba(11,29,58,.05);
+  --sh2:0 4px 20px rgba(11,29,58,.10),0 1px 4px rgba(11,29,58,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);height:100vh;overflow:hidden;line-height:1.55}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:4px}
+
+/* ── App shell */
+.app{display:grid;grid-template-rows:56px 44px 1fr 38px;height:100vh}
+
+/* ── Topbar */
+.topbar{background:var(--navy);padding:0 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 16px rgba(0,0,0,.22);z-index:200}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-ico{width:33px;height:33px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,#1a56db,#0d9488);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(13,148,136,.35)}
+.logo-name{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.2px;font-family:var(--mono)}
+.logo-name em{color:#5eead4;font-style:normal}
+.logo-sub{font-size:9.5px;color:rgba(255,255,255,.38);font-family:var(--mono);margin-top:-2px}
+.top-pills{display:flex;align-items:center;gap:6px}
+.tpill{font-size:9.5px;font-weight:700;letter-spacing:.4px;padding:3px 9px;border-radius:3px;font-family:var(--mono)}
+.tp-iso{background:rgba(26,86,219,.3);color:#93c5fd;border:1px solid rgba(26,86,219,.4)}
+.tp-pci{background:rgba(220,38,38,.25);color:#fca5a5;border:1px solid rgba(220,38,38,.35)}
+.tp-swift{background:rgba(13,148,136,.25);color:#5eead4;border:1px solid rgba(13,148,136,.35)}
+.tp-ai{background:rgba(109,40,217,.3);color:#c4b5fd;border:1px solid rgba(109,40,217,.4)}
+.tp-java{background:rgba(180,83,9,.25);color:#fcd34d;border:1px solid rgba(180,83,9,.35)}
+.model-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:20px;padding:4px 12px 4px 8px;font-size:11px;font-family:var(--mono);color:rgba(255,255,255,.6)}
+.mdot{width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 0 2px rgba(52,211,153,.2);flex-shrink:0}
+
+/* ── App-level tab bar */
+.app-tabs{background:var(--navy2);border-bottom:1px solid rgba(255,255,255,.06);padding:0 20px;display:flex;align-items:stretch;gap:0}
+.app-tab{display:flex;align-items:center;gap:7px;padding:0 18px;font-size:12px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;border-bottom:2.5px solid transparent;transition:color .13s,border-color .13s;letter-spacing:.2px;white-space:nowrap;margin-bottom:-1px}
+.app-tab:hover{color:rgba(255,255,255,.7)}
+.app-tab.on{color:#fff;border-bottom-color:#5eead4}
+.app-tab-ico{font-size:14px}
+.tab-sep{width:1px;background:rgba(255,255,255,.07);margin:8px 4px}
+
+/* ── Pages */
+.page{display:none;height:100%;overflow:hidden;flex-direction:column}
+.page.on{display:flex}
+
+/* ════════════════════════════════════
+   CODE ANALYZER PAGE
+════════════════════════════════════ */
+.ws{display:grid;grid-template-columns:1fr 1fr;overflow:hidden;flex:1}
+.pane{display:flex;flex-direction:column;overflow:hidden;background:var(--surf)}
+.pane-l{border-right:1.5px solid var(--brd)}
+
+.cfg{padding:10px 17px;background:var(--surf2);border-bottom:1px solid var(--brd);display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;flex-shrink:0}
+.cf{display:flex;flex-direction:column;gap:3px}
+.cf label{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.cf select,.cf input{background:var(--surf);color:var(--t1);border:1.5px solid var(--brd);border-radius:var(--rs);font-family:var(--mono);font-size:11px;padding:6px 9px;outline:none;transition:border-color .14s,box-shadow .14s}
+.cf select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' stroke='%236e88b0' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px;cursor:pointer}
+.cf select:focus,.cf input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.cf-m{flex:2;min-width:155px}.cf-p{min-width:130px}.cf-k{flex:2;min-width:150px}
+
+.proto-bar{background:var(--navy2);border-bottom:1px solid rgba(94,234,212,.12);padding:6px 17px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pb-label{font-size:9.5px;font-family:var(--mono);color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.pb-tags{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.pb-tag{font-size:9.5px;font-family:var(--mono);font-weight:600;padding:2px 8px;border-radius:3px;letter-spacing:.3px}
+
+.mstrip{background:var(--navy);border-bottom:2px solid rgba(255,255,255,.05);padding:0 17px;display:flex;gap:0;overflow-x:auto;flex-shrink:0}
+.mt{padding:8px 12px;font-size:11px;font-weight:600;color:rgba(255,255,255,.38);border-bottom:2.5px solid transparent;cursor:pointer;transition:color .13s,border-color .13s;white-space:nowrap;display:flex;align-items:center;gap:4px;margin-bottom:-2px}
+.mt:hover{color:rgba(255,255,255,.65)}
+.mt.on{color:#fff;border-bottom-color:#5eead4}
+.mt-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+.ed-wrap{flex:1;overflow:hidden;background:var(--surf)}
+#code-input{width:100%;height:100%;display:block;background:var(--surf);color:var(--t1);font-family:var(--mono);font-size:12.5px;line-height:1.85;padding:15px 17px;border:none;resize:none;outline:none;caret-color:var(--blue);tab-size:4}
+#code-input::placeholder{color:var(--t3);font-style:italic;font-size:12px}
+
+.ef{background:var(--navy);padding:7px 17px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0}
+.ef-stats{display:flex;align-items:center;gap:9px}
+.ef-chip{font-size:10px;font-family:var(--mono);color:rgba(255,255,255,.35)}
+.langp{padding:2px 8px;border-radius:20px;font-size:10px;font-family:var(--mono);background:rgba(13,148,136,.2);color:#5eead4;border:1px solid rgba(13,148,136,.28)}
+.ef-btns{display:flex;gap:6px;align-items:center}
+
+/* ── Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--rs);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .14s;outline:none;white-space:nowrap}
+.btn-p{background:linear-gradient(135deg,#1a56db,#2563eb);color:#fff;box-shadow:0 2px 8px rgba(26,86,219,.3)}
+.btn-p:hover{box-shadow:0 4px 14px rgba(26,86,219,.4);transform:translateY(-1px)}
+.btn-teal{background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;box-shadow:0 2px 8px rgba(13,148,136,.3)}
+.btn-teal:hover{box-shadow:0 4px 14px rgba(13,148,136,.4);transform:translateY(-1px)}
+.btn-purple{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(109,40,217,.3)}
+.btn-purple:hover{box-shadow:0 4px 14px rgba(109,40,217,.4);transform:translateY(-1px)}
+.btn-p:active,.btn-teal:active,.btn-purple:active{transform:translateY(0)}
+.btn-p:disabled,.btn-teal:disabled,.btn-purple:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-s{font-size:11px;padding:4px 10px}
+.btn-ghost{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.11)}
+.btn-ghost:hover{background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+.btn-outline{background:transparent;color:var(--t2);border:1.5px solid var(--brd)}
+.btn-outline:hover{border-color:var(--brd2);background:var(--surf2)}
+
+.ph{padding:9px 17px;background:var(--surf2);border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ph-lbl{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);display:flex;align-items:center;gap:6px}
+
+/* ── Results */
+.rscroll{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+
+.state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:28px 20px;text-align:center;background:var(--bg)}
+.s-ico{width:54px;height:54px;border-radius:14px;background:var(--surf);border:1.5px solid var(--brd);box-shadow:var(--sh);display:flex;align-items:center;justify-content:center;font-size:22px}
+.s-h{font-size:14px;font-weight:700;color:var(--t1)}
+.s-p{font-size:11.5px;color:var(--t3);max-width:240px;line-height:1.7}
+.caps{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.cap{padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:600;background:var(--surf);border:1.5px solid var(--brd);color:var(--t2)}
+
+.ld{display:flex;gap:6px}
+.ld-d{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:bnd 1.3s ease-in-out infinite}
+.ld-d:nth-child(2){animation-delay:.15s;background:var(--teal)}
+.ld-d:nth-child(3){animation-delay:.3s;background:var(--purple)}
+@keyframes bnd{0%,80%,100%{transform:translateY(0);opacity:.28}40%{transform:translateY(-6px);opacity:1}}
+
+.sc-card{background:var(--surf);border-radius:var(--r);border:1.5px solid var(--brd);padding:15px 18px;box-shadow:var(--sh);display:flex;align-items:center;gap:14px}
+.sring{position:relative;width:68px;height:68px;flex-shrink:0}
+.sring svg{transform:rotate(-90deg)}
+.snum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:18px;font-weight:700}
+.sinfo{flex:1;min-width:0}
+.slabel{font-size:15px;font-weight:700;line-height:1.2}
+.ssumm{font-size:11px;color:var(--t2);margin-top:3px;line-height:1.55}
+.stags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.stag{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--mono)}
+
+.cmp-grid{display:grid;gap:8px}
+.cmp-card{background:var(--surf);border-radius:var(--rs);border:1.5px solid var(--brd);padding:10px 12px}
+.cmp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.cmp-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3)}
+.cmp-val{font-size:16px;font-weight:800;font-family:var(--mono)}
+.cmp-bar{height:4px;border-radius:2px;background:var(--brd);overflow:hidden}
+.cmp-fill{height:100%;border-radius:2px;transition:width 1s ease}
+
+.mr{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mc{background:var(--surf);border-radius:var(--rs);border:1.5px solid var(--brd);padding:10px 12px;text-align:center}
+.mn{font-size:17px;font-weight:800;font-family:var(--mono);line-height:1.2}
+.ml{font-size:9.5px;font-weight:700;color:var(--t3);margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
+
+.scard{background:var(--surf);border-radius:var(--r);border:1.5px solid var(--brd);overflow:hidden;box-shadow:var(--sh);animation:su .25s ease both}
+@keyframes su{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.shead{padding:10px 15px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:background .11s;user-select:none}
+.shead:hover{background:var(--surf2)}
+.sico{width:27px;height:27px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.stitle{font-size:12px;font-weight:700;flex:1;color:var(--t1)}
+.scnt{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--mono)}
+.chev{color:var(--t3);transition:transform .18s;flex-shrink:0}
+.chev.open{transform:rotate(180deg)}
+.sbody{border-top:1.5px solid var(--brd);display:none}
+.sbody.open{display:block}
+
+.iss{padding:10px 14px;border-bottom:1px solid var(--brd);display:flex;gap:10px;align-items:flex-start;transition:background .1s}
+.iss:last-child{border-bottom:none}
+.iss:hover{background:var(--surf2)}
+.idot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:7px}
+.ibody{flex:1;min-width:0}
+.imeta{display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap}
+.itype{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+.iln{font-size:9.5px;font-family:var(--mono);color:var(--t3);background:var(--bg);padding:1px 6px;border-radius:3px;border:1px solid var(--brd)}
+.ispec{font-size:9px;font-family:var(--mono);padding:1px 7px;border-radius:3px;font-weight:700}
+.itag{font-size:9px;font-family:var(--mono);padding:1px 6px;border-radius:3px;color:var(--t3);background:var(--bg);border:1px solid var(--brd)}
+.ititle{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.idesc{font-size:11.5px;color:var(--t2);line-height:1.65}
+.ifix{margin-top:6px;font-size:11px;background:var(--green-lt);color:var(--green);padding:6px 10px;border-radius:6px;border-left:3px solid var(--green);font-family:var(--mono);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.iref{margin-top:4px;font-size:10px;color:var(--t3);font-family:var(--mono)}
+.fcode{padding:13px 15px;background:#f8fafc;font-family:var(--mono);font-size:11.5px;line-height:1.85;color:#1e3a5f;white-space:pre-wrap;word-break:break-word;overflow-x:auto;max-height:300px;overflow-y:auto}
+
+/* colour tokens */
+.c-r{color:var(--red)}.ic-r{background:var(--red-lt)}.d-r{background:var(--red)}.b-r{background:var(--red-lt);color:var(--red);border:1px solid rgba(220,38,38,.2)}
+.c-a{color:var(--amber)}.ic-a{background:var(--amber-lt)}.d-a{background:var(--amber)}.b-a{background:var(--amber-lt);color:var(--amber);border:1px solid rgba(217,119,6,.2)}
+.c-b{color:var(--blue)}.ic-b{background:var(--blue-lt)}.d-b{background:var(--blue)}.b-b{background:var(--blue-lt);color:var(--blue);border:1px solid rgba(26,86,219,.2)}
+.c-g{color:var(--green)}.ic-g{background:var(--green-lt)}.d-g{background:var(--green)}.b-g{background:var(--green-lt);color:var(--green);border:1px solid rgba(5,150,105,.2)}
+.c-t{color:var(--teal)}.ic-t{background:var(--teal-lt)}.d-t{background:var(--teal)}.b-t{background:var(--teal-lt);color:var(--teal);border:1px solid rgba(13,148,136,.2)}
+.c-p{color:var(--purple)}.ic-p{background:var(--purple-lt)}.b-p{background:var(--purple-lt);color:var(--purple);border:1px solid rgba(109,40,217,.2)}
+
+/* ════════════════════════════════════
+   FINSIGHT PAGE
+════════════════════════════════════ */
+.fs-layout{display:grid;grid-template-columns:220px 1fr;flex:1;overflow:hidden}
+.fs-sidebar{background:var(--navy);border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.fs-nav-group{padding:14px 12px 6px;font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:rgba(255,255,255,.25);font-family:var(--mono)}
+.fs-nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px;cursor:pointer;transition:background .12s;border-left:3px solid transparent}
+.fs-nav-item:hover{background:rgba(255,255,255,.05)}
+.fs-nav-item.on{background:rgba(13,148,136,.15);border-left-color:#5eead4}
+.fs-nav-ico{font-size:16px;flex-shrink:0}
+.fs-nav-label{font-size:12px;font-weight:600;color:rgba(255,255,255,.6)}
+.fs-nav-item.on .fs-nav-label{color:#fff}
+.fs-nav-desc{font-size:10px;color:rgba(255,255,255,.28);margin-top:1px;font-family:var(--mono)}
+.fs-sidebar-foot{margin-top:auto;padding:14px;border-top:1px solid rgba(255,255,255,.07)}
+.rag-badge{background:rgba(109,40,217,.2);border:1px solid rgba(109,40,217,.3);border-radius:6px;padding:8px 10px}
+.rag-title{font-size:10px;font-weight:700;color:#c4b5fd;font-family:var(--mono);margin-bottom:4px}
+.rag-steps{display:flex;flex-direction:column;gap:3px}
+.rag-step{font-size:9.5px;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:5px;font-family:var(--mono)}
+.rag-dot{width:4px;height:4px;border-radius:50%;background:#7c3aed;flex-shrink:0}
+
+.fs-main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.fs-tool-header{background:var(--surf);border-bottom:1px solid var(--brd);padding:14px 20px;flex-shrink:0}
+.fs-tool-title{font-size:15px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.fs-tool-sub{font-size:11.5px;color:var(--t3)}
+
+/* FinSight tool panels */
+.fs-panel{display:none;flex:1;overflow:hidden;flex-direction:column}
+.fs-panel.on{display:flex}
+.fs-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+
+/* Input card */
+.input-card{background:var(--surf);border-radius:var(--r);border:1.5px solid var(--brd);overflow:hidden;box-shadow:var(--sh)}
+.input-card-head{padding:10px 15px;background:var(--surf2);border-bottom:1px solid var(--brd);font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between}
+.input-card-body{padding:0}
+.fs-textarea{width:100%;background:var(--surf);color:var(--t1);font-family:var(--mono);font-size:12.5px;line-height:1.8;padding:14px 15px;border:none;resize:none;outline:none;caret-color:var(--blue);min-height:130px;max-height:220px}
+.fs-textarea::placeholder{color:var(--t3);font-style:italic;font-size:12px}
+.input-card-foot{padding:10px 15px;background:var(--surf2);border-top:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+/* Quick-fill chips */
+.qfill{display:flex;gap:6px;flex-wrap:wrap}
+.qf-chip{padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:600;background:var(--surf);border:1.5px solid var(--brd);color:var(--t2);cursor:pointer;transition:all .13s;font-family:var(--mono)}
+.qf-chip:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-lt)}
+
+/* AI response card */
+.ai-card{background:var(--surf);border-radius:var(--r);border:1.5px solid var(--brd);box-shadow:var(--sh);overflow:hidden;animation:su .3s ease both}
+.ai-card-head{padding:10px 15px;background:linear-gradient(90deg,rgba(13,148,136,.06),transparent);border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px}
+.ai-head-ico{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--teal),#0d9488);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.ai-head-label{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
+.ai-head-time{font-size:10px;font-family:var(--mono);color:var(--t3);margin-left:auto}
+.ai-card-body{padding:15px;font-size:13px;color:var(--t1);line-height:1.75;white-space:pre-wrap;word-break:break-word}
+
+/* Severity/insight badges on AI cards */
+.insight-badges{display:flex;gap:6px;flex-wrap:wrap;padding:0 15px 12px}
+.ibadge{padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;font-family:var(--mono)}
+.ibadge-r{background:var(--red-lt);color:var(--red);border:1px solid rgba(220,38,38,.2)}
+.ibadge-a{background:var(--amber-lt);color:var(--amber);border:1px solid rgba(217,119,6,.2)}
+.ibadge-g{background:var(--green-lt);color:var(--green);border:1px solid rgba(5,150,105,.2)}
+.ibadge-b{background:var(--blue-lt);color:var(--blue);border:1px solid rgba(26,86,219,.2)}
+.ibadge-p{background:var(--purple-lt);color:var(--purple);border:1px solid rgba(109,40,217,.2)}
+
+/* Fields grid for transaction form */
+.fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 15px}
+.field-group{display:flex;flex-direction:column;gap:4px}
+.field-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3)}
+.field-input{background:var(--surf2);color:var(--t1);border:1.5px solid var(--brd);border-radius:var(--rs);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none;transition:border-color .14s}
+.field-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.field-select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' stroke='%236e88b0' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:26px;cursor:pointer;background-color:var(--surf2)}
+.field-select option{background:white}
+.field-full{grid-column:1/-1}
+
+/* Log input */
+.log-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 15px;border-bottom:1px solid var(--brd)}
+
+/* ── Footer */
+footer{background:var(--navy);display:flex;align-items:center;justify-content:center;gap:14px;font-size:10px;color:rgba(255,255,255,.28);font-family:var(--mono)}
+footer span{display:flex;align-items:center;gap:4px}
+
+/* ── Modal */
+.overlay{position:fixed;inset:0;background:rgba(11,29,58,.6);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--surf);border-radius:var(--r);border:1.5px solid var(--brd);box-shadow:var(--sh2);width:100%;max-width:620px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:14px;font-weight:700}
+.modal-body{padding:14px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
+.sample-btn{padding:10px 14px;border-radius:var(--rs);border:1.5px solid var(--brd);background:var(--surf2);cursor:pointer;text-align:left;transition:all .13s}
+.sample-btn:hover{border-color:var(--teal);background:var(--teal-lt)}
+.sample-title{font-size:12.5px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.sample-desc{font-size:11px;color:var(--t3)}
+.sample-tags{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.stag-s{font-size:9.5px;font-family:var(--mono);font-weight:600;padding:1px 7px;border-radius:3px}
+
+/* ── Toast */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(50px);background:var(--navy);color:#fff;padding:8px 18px;border-radius:var(--rs);font-size:12.5px;font-weight:600;box-shadow:var(--sh2);transition:transform .25s ease,opacity .25s ease;opacity:0;z-index:9999;pointer-events:none;border:1px solid rgba(255,255,255,.1)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* Responsive */
+@media(max-width:900px){
+  .ws{grid-template-columns:1fr;height:auto;overflow:visible}
+  .fs-layout{grid-template-columns:1fr}
+  .fs-sidebar{display:none}
+}
+@media(max-width:640px){
+  .top-pills{display:none}
+  .fields-grid{grid-template-columns:1fr}
+  .mr{grid-template-columns:repeat(2,1fr)}
+  .cmp-grid{grid-template-columns:repeat(2,1fr)!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ TOPBAR ══ -->
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-ico">
+      <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+        <rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1.2" stroke="white" stroke-width="1.5"/>
+        <rect x="9" y="2.5" width="5.5" height="5.5" rx="1.2" stroke="#5eead4" stroke-width="1.5"/>
+        <rect x="2.5" y="9" width="5.5" height="5.5" rx="1.2" stroke="#5eead4" stroke-width="1.5"/>
+        <rect x="9" y="9" width="5.5" height="5.5" rx="1.2" stroke="white" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-name"><span style="color:#c4b5fd">Fin<em>.</em>Trace</span></div>
+      <div class="logo-sub">AI Code Assistant · Payment Intelligence Platform</div>
+    </div>
+  </div>
+  <div class="top-pills">
+    <span class="tpill tp-iso">ISO 8583</span>
+    <span class="tpill tp-swift">ISO 20022</span>
+    <span class="tpill tp-swift">SWIFT</span>
+    <span class="tpill tp-pci">PCI-DSS v4</span>
+    <span class="tpill tp-java">Java/Spring</span>
+    <span class="tpill tp-ai">RAG · AI</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
+      <label style="font-size:9px;color:rgba(255,255,255,.3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px">OpenRouter Key</label>
+      <input type="password" id="global-key" placeholder="sk-or-v1-…" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;font-family:var(--mono);font-size:11px;padding:4px 10px;outline:none;width:180px" onfocus="this.style.borderColor='#5eead4'" onblur="this.style.borderColor='rgba(255,255,255,.12)'"/>
+    </div>
+    <div class="model-chip">
+      <div class="mdot"></div>
+      <span id="pill-txt">step-3.5-flash</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══ APP-LEVEL TABS ══ -->
+<div class="app-tabs">
+  <div class="app-tab on" data-page="analyzer" onclick="switchPage(this)">
+    <span class="app-tab-ico">⚡</span>Code Analyzer
+  </div>
+  <div class="tab-sep"></div>
+  <div class="app-tab" data-page="finsight" onclick="switchPage(this)">
+    <span class="app-tab-ico">🧠</span>FinSight AI Intelligence
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 1: CODE ANALYZER
+══════════════════════════════════════ -->
+<div class="page on" id="page-analyzer">
+  <div class="ws">
+    <!-- LEFT: Editor -->
+    <div class="pane pane-l">
+      <div class="cfg">
+        <div class="cf cf-m">
+          <label>AI Model</label>
+          <select id="sel-model" onchange="syncPill()">
+            <optgroup label="Free Models">
+              <option value="stepfun/step-3.5-flash:free">stepfun / step-3.5-flash · free</option>
+              <option value="nvidia/nemotron-3-super-120b-a12b:free">nvidia / nemotron-3-super-120b · free</option>
+              <option value="google/gemma-3-27b-it:free">google / gemma-3-27b · free</option>
+              <option value="meta-llama/llama-4-scout:free">meta-llama / llama-4-scout · free</option>
+              <option value="deepseek/deepseek-r1-zero:free">deepseek / deepseek-r1-zero · free</option>
+              <option value="qwen/qwen3-30b-a3b:free">qwen / qwen3-30b · free</option>
+            </optgroup>
+            <optgroup label="Premium">
+              <option value="openai/gpt-4o">openai / gpt-4o</option>
+              <option value="anthropic/claude-3.5-sonnet">anthropic / claude-3.5-sonnet</option>
+              <option value="google/gemini-2.5-pro-preview">google / gemini-2.5-pro</option>
+              <option value="deepseek/deepseek-r1">deepseek / deepseek-r1</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="cf cf-p">
+          <label>Protocol Focus</label>
+          <select id="sel-proto" onchange="updateProto()">
+            <option value="iso8583">ISO 8583 (Card Switch)</option>
+            <option value="iso20022">ISO 20022 (Modern Payments)</option>
+            <option value="swift">SWIFT MT / MX</option>
+            <option value="all">All Protocols</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="proto-bar">
+        <span class="pb-label">Active:</span>
+        <div class="pb-tags" id="proto-tags"></div>
+      </div>
+
+      <div class="mstrip">
+        <div class="mt on" data-m="full_switch" onclick="pickMode(this)"><span class="mt-dot" style="background:#5eead4"></span>Full Switch Audit</div>
+        <div class="mt" data-m="iso8583"       onclick="pickMode(this)"><span class="mt-dot" style="background:#93c5fd"></span>ISO 8583</div>
+        <div class="mt" data-m="iso20022"      onclick="pickMode(this)"><span class="mt-dot" style="background:#86efac"></span>ISO 20022</div>
+        <div class="mt" data-m="swift"         onclick="pickMode(this)"><span class="mt-dot" style="background:#5eead4"></span>SWIFT</div>
+        <div class="mt" data-m="pci_dss"       onclick="pickMode(this)"><span class="mt-dot" style="background:#fca5a5"></span>PCI-DSS v4</div>
+        <div class="mt" data-m="txn_flow"      onclick="pickMode(this)"><span class="mt-dot" style="background:#c4b5fd"></span>Txn Flow</div>
+        <div class="mt" data-m="tps"           onclick="pickMode(this)"><span class="mt-dot" style="background:#fcd34d"></span>TPS / Perf</div>
+      </div>
+
+      <div class="ed-wrap">
+        <textarea id="code-input" spellcheck="false"
+          placeholder="// Paste your Java/Spring payment switch code here…
+//
+// FinTrace will analyze your code for potential issues, vulnerabilities, and best practice violations related to payment processing:
+//   ISO 8583 — MTI, mandatory fields, bitmap, STAN/RRN, MAC
+//   ISO 20022 — pacs.008/009/002 schema, BIC/IBAN, XXE
+//   SWIFT     — MT103/202/940 fields, BIC, gpi, AML
+//   PCI-DSS   — PAN/CVV in logs, prohibited storage, PIN block
+//   Txn Flow  — reversal on timeout, duplicate detection
+//   TPS       — synchronized blocks, N+1 queries, HikariCP"
+          oninput="onCode(this)"></textarea>
+      </div>
+
+      <div class="ef">
+        <div class="ef-stats">
+          <span class="langp">java / spring</span>
+          <span class="ef-chip" id="st-l">0 lines</span>
+          <span class="ef-chip" id="st-c">0 chars</span>
+        </div>
+        <div class="ef-btns">
+          <button class="btn btn-ghost btn-s" onclick="openSamples()">📂 Samples</button>
+          <button class="btn btn-ghost btn-s" onclick="clearCode()">Clear</button>
+          <button class="btn btn-teal" id="btn-go" onclick="runAnalysis()">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Analyze
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div class="pane" id="rpane">
+      <div class="ph">
+        <span class="ph-lbl">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1" y="1" width="8" height="8" rx="1.5" stroke="var(--teal)" stroke-width="1.3"/><path d="M3 5l1.5 1.5 3-2.5" stroke="var(--teal)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Analysis Results
+        </span>
+        <div id="r-acts" style="display:none" class="ef-btns">
+          <button class="btn btn-outline btn-s" onclick="copyRpt()">Copy Report</button>
+          <button class="btn btn-outline btn-s" onclick="expJSON()">Export JSON</button>
+          <button class="btn btn-teal btn-s" onclick="runAnalysis()">↺ Re-run</button>
+        </div>
+      </div>
+      <div class="state" id="st-e">
+        <div class="s-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="2" stroke="var(--blue)" stroke-width="1.5"/><rect x="13" y="3" width="8" height="8" rx="2" stroke="var(--teal)" stroke-width="1.5"/><rect x="3" y="13" width="8" height="8" rx="2" stroke="var(--teal)" stroke-width="1.5"/><rect x="13" y="13" width="8" height="8" rx="2" stroke="var(--blue)" stroke-width="1.5"/></svg></div>
+        <div class="s-h">FinTrace</div>
+        <div class="s-p">Paste Java/Spring switch code and click Analyze.</div>
+        <div class="caps">
+          <span class="cap" style="color:var(--blue)">📋 ISO 8583</span>
+          <span class="cap" style="color:var(--teal)">🔄 ISO 20022</span>
+          <span class="cap" style="color:var(--teal)">🌐 SWIFT</span>
+          <span class="cap" style="color:var(--red)">🔐 PCI-DSS v4</span>
+          <span class="cap" style="color:var(--amber)">💳 EMV/PIN</span>
+          <span class="cap" style="color:var(--purple)">📊 High-TPS</span>
+        </div>
+      </div>
+      <div class="state" id="st-l" style="display:none">
+        <div class="ld"><div class="ld-d"></div><div class="ld-d"></div><div class="ld-d"></div></div>
+        <div class="s-h" id="ld-h">Analyzing switch code…</div>
+        <div class="s-p" id="ld-p">Loading protocol rules…</div>
+      </div>
+      <div id="st-r" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+        <div class="rscroll" id="r-inner"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 2: FINSIGHT AI
+══════════════════════════════════════ -->
+<div class="page" id="page-finsight">
+  <div class="fs-layout">
+    <!-- Sidebar nav -->
+    <div class="fs-sidebar">
+      <div class="fs-nav-group">Intelligence Tools</div>
+      <div class="fs-nav-item on" data-tool="txn-explain" onclick="switchTool(this)">
+        <span class="fs-nav-ico">🧾</span>
+        <div><div class="fs-nav-label">Transaction Explainer</div><div class="fs-nav-desc">Human-readable insights</div></div>
+      </div>
+      <div class="fs-nav-item" data-tool="fraud-detect" onclick="switchTool(this)">
+        <span class="fs-nav-ico">🚨</span>
+        <div><div class="fs-nav-label">Fraud / Risk Analyzer</div><div class="fs-nav-desc">Pattern detection & reasoning</div></div>
+      </div>
+      <div class="fs-nav-item" data-tool="api-debug" onclick="switchTool(this)">
+        <span class="fs-nav-ico">🔌</span>
+        <div><div class="fs-nav-label">API Error Debugger</div><div class="fs-nav-desc">Root cause + fix suggestions</div></div>
+      </div>
+      <div class="fs-nav-item" data-tool="log-analyze" onclick="switchTool(this)">
+        <span class="fs-nav-ico">📊</span>
+        <div><div class="fs-nav-label">Log Analyzer</div><div class="fs-nav-desc">Logs → meaningful insights</div></div>
+      </div>
+      <div class="fs-nav-item" data-tool="iso-lookup" onclick="switchTool(this)">
+        <span class="fs-nav-ico">📋</span>
+        <div><div class="fs-nav-label">ISO 8583 Lookup</div><div class="fs-nav-desc">Field & response code reference</div></div>
+      </div>
+      <div class="fs-nav-item" data-tool="swift-decode" onclick="switchTool(this)">
+        <span class="fs-nav-ico">🌐</span>
+        <div><div class="fs-nav-label">SWIFT Message Decoder</div><div class="fs-nav-desc">Decode MT103/202/940</div></div>
+      </div>
+      <div class="fs-sidebar-foot">
+        <div class="rag-badge">
+          <div class="rag-title">⚡ RAG Architecture</div>
+          <div class="rag-steps">
+            <div class="rag-step"><div class="rag-dot"></div>Input ingested</div>
+            <div class="rag-step"><div class="rag-dot"></div>Domain context retrieved</div>
+            <div class="rag-step"><div class="rag-dot"></div>LLM generates insight</div>
+            <div class="rag-step"><div class="rag-dot"></div>Structured response</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main area -->
+    <div class="fs-main">
+
+      <!-- ── Tool: Transaction Explainer -->
+      <div class="fs-panel on" id="tool-txn-explain">
+        <div class="fs-tool-header">
+          <div class="fs-tool-title">🧾 Transaction Explainer
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:var(--teal-lt);color:var(--teal);border:1px solid rgba(13,148,136,.2)">RAG-Powered</span>
+          </div>
+          <div class="fs-tool-sub">Translates raw transaction data into clear, human-readable explanations for developers and support teams.</div>
+        </div>
+        <div class="fs-body">
+          <div class="input-card">
+            <div class="input-card-head">
+              Transaction Data
+              <div class="qfill">
+                <span class="qf-chip" onclick="fillTxn('failed_balance')">Insufficient Balance</span>
+                <span class="qf-chip" onclick="fillTxn('timeout')">Issuer Timeout</span>
+                <span class="qf-chip" onclick="fillTxn('expired')">Expired Card</span>
+                <span class="qf-chip" onclick="fillTxn('fraud')">Suspected Fraud</span>
+              </div>
+            </div>
+            <div class="fields-grid">
+              <div class="field-group"><div class="field-label">Transaction ID</div><input class="field-input" id="txn-id" placeholder="TXN-20240315-001234"/></div>
+              <div class="field-group"><div class="field-label">Amount (LKR)</div><input class="field-input" id="txn-amount" type="number" placeholder="25000.00"/></div>
+              <div class="field-group"><div class="field-label">Type</div>
+                <select class="field-input field-select" id="txn-type">
+                  <option value="PURCHASE">Purchase</option>
+                  <option value="TRANSFER">Transfer</option>
+                  <option value="WITHDRAWAL">Withdrawal</option>
+                  <option value="REFUND">Refund</option>
+                  <option value="REVERSAL">Reversal</option>
+                </select>
+              </div>
+              <div class="field-group"><div class="field-label">Status</div>
+                <select class="field-input field-select" id="txn-status">
+                  <option value="FAILED">FAILED</option>
+                  <option value="APPROVED">APPROVED</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="REVERSED">REVERSED</option>
+                  <option value="TIMED_OUT">TIMED_OUT</option>
+                </select>
+              </div>
+              <div class="field-group"><div class="field-label">ISO 8583 Response Code (F39)</div><input class="field-input" id="txn-rc" placeholder="51" maxlength="2"/></div>
+              <div class="field-group"><div class="field-label">Balance at Time</div><input class="field-input" id="txn-balance" type="number" placeholder="12000.00"/></div>
+              <div class="field-group"><div class="field-label">Merchant / Beneficiary</div><input class="field-input" id="txn-merchant" placeholder="KEELLS SUPER — COLOMBO 03"/></div>
+              <div class="field-group"><div class="field-label">Channel</div>
+                <select class="field-input field-select" id="txn-channel">
+                  <option value="ATM">ATM</option>
+                  <option value="POS">POS</option>
+                  <option value="ONLINE">Online Banking</option>
+                  <option value="MOBILE">Mobile App</option>
+                  <option value="USSD">USSD</option>
+                </select>
+              </div>
+              <div class="field-group field-full"><div class="field-label">Additional Notes (optional)</div><input class="field-input" id="txn-notes" placeholder="e.g. Second attempt today, new beneficiary"/></div>
+            </div>
+            <div class="input-card-foot">
+              <span style="font-size:11px;color:var(--t3)">Explain for: 
+                <select id="txn-audience" style="background:transparent;border:none;font-size:11px;color:var(--t2);font-family:var(--sans);outline:none;cursor:pointer">
+                  <option value="developer">Developer / Technical</option>
+                  <option value="support">Customer Support</option>
+                  <option value="customer">End Customer</option>
+                </select>
+              </span>
+              <button class="btn btn-teal" id="btn-txn" onclick="runTxnExplain()">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.4"/><path d="M4.5 6l1 1 2.5-2" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Explain Transaction
+              </button>
+            </div>
+          </div>
+          <div id="txn-result"></div>
+        </div>
+      </div>
+
+      <!-- ── Tool: Fraud / Risk Analyzer -->
+      <div class="fs-panel" id="tool-fraud-detect">
+        <div class="fs-tool-header">
+          <div class="fs-tool-title">🚨 Fraud / Risk Analyzer
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:var(--red-lt);color:var(--red);border:1px solid rgba(220,38,38,.2)">Pattern Detection</span>
+          </div>
+          <div class="fs-tool-sub">Detects suspicious patterns and provides reasoned risk explanations — not black-box scores.</div>
+        </div>
+        <div class="fs-body">
+          <div class="input-card">
+            <div class="input-card-head">Transaction Context
+              <div class="qfill">
+                <span class="qf-chip" onclick="fillFraud('velocity')">Velocity Spike</span>
+                <span class="qf-chip" onclick="fillFraud('new_bene')">New Beneficiary</span>
+                <span class="qf-chip" onclick="fillFraud('odd_time')">Odd-Hour Transaction</span>
+                <span class="qf-chip" onclick="fillFraud('geo')">Geographic Anomaly</span>
+              </div>
+            </div>
+            <div style="padding:0">
+              <textarea class="fs-textarea" id="fraud-input" placeholder="Paste transaction context JSON or describe the pattern:
+
+{
+  &quot;transactions&quot;: [
+    { &quot;id&quot;: &quot;T001&quot;, &quot;amount&quot;: 5000, &quot;time&quot;: &quot;02:14&quot;, &quot;merchant&quot;: &quot;NEW_MERCHANT_XYZ&quot;, &quot;country&quot;: &quot;LK&quot; },
+    { &quot;id&quot;: &quot;T002&quot;, &quot;amount&quot;: 5000, &quot;time&quot;: &quot;02:16&quot;, &quot;merchant&quot;: &quot;NEW_MERCHANT_XYZ&quot;, &quot;country&quot;: &quot;SG&quot; },
+    { &quot;id&quot;: &quot;T003&quot;, &quot;amount&quot;: 4800, &quot;time&quot;: &quot;02:18&quot;, &quot;merchant&quot;: &quot;ATM_UNKNOWN&quot;, &quot;country&quot;: &quot;SG&quot; }
+  ],
+  &quot;customer_profile&quot;: { &quot;usual_spend&quot;: 3000, &quot;usual_hours&quot;: &quot;08:00-22:00&quot;, &quot;known_countries&quot;: [&quot;LK&quot;] }
+}"></textarea>
+            </div>
+            <div class="input-card-foot">
+              <span style="font-size:11px;color:var(--t3)">Risk framework: 
+                <select id="fraud-framework" style="background:transparent;border:none;font-size:11px;color:var(--t2);font-family:var(--sans);outline:none;cursor:pointer">
+                  <option value="iso">ISO 8583 / Switch context</option>
+                  <option value="pci">PCI-DSS fraud indicators</option>
+                  <option value="general">General fintech</option>
+                </select>
+              </span>
+              <button class="btn btn-p" id="btn-fraud" onclick="runFraud()">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1.5l1.2 3.7H11L8.1 7.3l1.2 3.7L6 9l-3.3 2 1.2-3.7L1 5.2h3.8z" stroke="white" stroke-width="1.2" fill="none"/></svg>
+                Analyze Risk
+              </button>
+            </div>
+          </div>
+          <div id="fraud-result"></div>
+        </div>
+      </div>
+
+      <!-- ── Tool: API Error Debugger -->
+      <div class="fs-panel" id="tool-api-debug">
+        <div class="fs-tool-header">
+          <div class="fs-tool-title">🔌 API Error Debugger
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:var(--amber-lt);color:var(--amber);border:1px solid rgba(217,119,6,.2)">Root Cause Analysis</span>
+          </div>
+          <div class="fs-tool-sub">Understands backend API failures and stack traces — suggests root causes and fixes in fintech context.</div>
+        </div>
+        <div class="fs-body">
+          <div class="input-card">
+            <div class="input-card-head">Error / Stack Trace
+              <div class="qfill">
+                <span class="qf-chip" onclick="fillError('npe')">NullPointerException</span>
+                <span class="qf-chip" onclick="fillError('db')">DB Connection Error</span>
+                <span class="qf-chip" onclick="fillError('timeout')">Gateway Timeout</span>
+                <span class="qf-chip" onclick="fillError('iso')">ISO Parse Error</span>
+              </div>
+            </div>
+            <div style="padding:0">
+              <textarea class="fs-textarea" id="error-input" style="min-height:160px" placeholder="Paste your HTTP error, exception, or stack trace:
+
+HTTP 500 — Internal Server Error
+POST /api/v1/payment/authorize
+
+java.lang.NullPointerException: Cannot invoke method getAccountBalance()
+  at com.epic.switch.AuthorizationService.processAuth(AuthorizationService.java:87)
+  at com.epic.switch.SwitchController.authorize(SwitchController.java:42)
+  ..."></textarea>
+            </div>
+            <div class="log-meta">
+              <div class="field-group"><div class="field-label">Endpoint / Context</div><input class="field-input" id="err-endpoint" placeholder="POST /api/v1/payment/authorize"/></div>
+              <div class="field-group"><div class="field-label">Service / Component</div><input class="field-input" id="err-service" placeholder="AuthorizationService · ISO 8583"/></div>
+            </div>
+            <div class="input-card-foot">
+              <span style="font-size:11px;color:var(--t3)">Stack: Java/Spring Boot</span>
+              <button class="btn btn-p" id="btn-err" onclick="runApiDebug()">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2h4M3 5h6M4 8h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Debug Error
+              </button>
+            </div>
+          </div>
+          <div id="error-result"></div>
+        </div>
+      </div>
+
+      <!-- ── Tool: Log Analyzer -->
+      <div class="fs-panel" id="tool-log-analyze">
+        <div class="fs-tool-header">
+          <div class="fs-tool-title">📊 Log Analyzer
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:var(--purple-lt);color:var(--purple);border:1px solid rgba(109,40,217,.2)">AI Insights</span>
+          </div>
+          <div class="fs-tool-sub">Converts raw Spring Boot / payment switch logs into structured, actionable insights.</div>
+        </div>
+        <div class="fs-body">
+          <div class="input-card">
+            <div class="input-card-head">Raw Log Output
+              <div class="qfill">
+                <span class="qf-chip" onclick="fillLog('spring')">Spring Boot Log</span>
+                <span class="qf-chip" onclick="fillLog('switch')">Switch Transaction Log</span>
+                <span class="qf-chip" onclick="fillLog('gc')">GC / Memory Log</span>
+              </div>
+            </div>
+            <div style="padding:0">
+              <textarea class="fs-textarea" id="log-input" style="min-height:180px" placeholder="Paste raw system / application logs here…
+
+2024-03-15 02:14:33.221 ERROR [switch-core] AuthorizationService - Issuer timeout after 30000ms for STAN=001234
+2024-03-15 02:14:33.225 WARN  [switch-core] ReverseService - Reversal NOT triggered for STAN=001234
+2024-03-15 02:14:33.890 ERROR [switch-core] ISOPackager - Field 39 parse error: unexpected length 3 expected 2
+2024-03-15 02:14:35.001 INFO  [hikari-pool] Connection pool exhausted — waiting for available connection (timeout=30s)
+2024-03-15 02:14:36.441 ERROR [switch-core] TransactionRouter - No route found for BIN 458900"></textarea>
+            </div>
+            <div class="log-meta">
+              <div class="field-group"><div class="field-label">Log Source</div>
+                <select class="field-input field-select" id="log-source">
+                  <option value="spring">Spring Boot Application</option>
+                  <option value="jpos">jPOS Switch</option>
+                  <option value="db">Database / HikariCP</option>
+                  <option value="os">OS / GC / JVM</option>
+                  <option value="nginx">Nginx / Gateway</option>
+                </select>
+              </div>
+              <div class="field-group"><div class="field-label">Time Window</div><input class="field-input" id="log-window" placeholder="e.g. 02:00 - 02:30 2024-03-15"/></div>
+            </div>
+            <div class="input-card-foot">
+              <span style="font-size:11px;color:var(--t3)">Format: Auto-detect</span>
+              <button class="btn btn-purple" id="btn-log" onclick="runLogAnalyze()">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5" stroke="white" stroke-width="1.3"/><path d="M3.5 4.5h5M3.5 6.5h3M3.5 8.5h4" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg>
+                Analyze Logs
+              </button>
+            </div>
+          </div>
+          <div id="log-result"></div>
+        </div>
+      </div>
+
+      <!-- ── Tool: ISO 8583 Lookup -->
+      <div class="fs-panel" id="tool-iso-lookup">
+        <div class="fs-tool-header">
+          <div class="fs-tool-title">📋 ISO 8583 Field & Code Reference</div>
+          <div class="fs-tool-sub">Look up data elements, response codes, and MTI definitions with AI-explained context.</div>
+        </div>
+        <div class="fs-body">
+          <div class="input-card">
+            <div class="input-card-head">Query
+              <div class="qfill">
+                <span class="qf-chip" onclick="fillISO('f39')">Response Code F39</span>
+                <span class="qf-chip" onclick="fillISO('f55')">EMV Data F55</span>
+                <span class="qf-chip" onclick="fillISO('mti0100')">MTI 0100 fields</span>
+                <span class="qf-chip" onclick="fillISO('mac')">MAC F64/F128</span>
+                <span class="qf-chip" onclick="fillISO('rc51')">RC 51 meaning</span>
+              </div>
+            </div>
+            <div style="padding:0">
+              <textarea class="fs-textarea" id="iso-input" style="min-height:90px" placeholder="Ask anything about ISO 8583:
+
+- What fields are mandatory in a 0100 authorization request?
+- Explain response code 91
+- What is the format of Field 55 (EMV data)?
+- How does the secondary bitmap work?
+- What is the difference between F11 STAN and F37 RRN?"></textarea>
+            </div>
+            <div class="input-card-foot">
+              <span style="font-size:11px;color:var(--t3)">ISO 8583:2003 + EMV 4.3</span>
+              <button class="btn btn-p" id="btn-iso" onclick="runISOLookup()">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="5.5" cy="5.5" r="3.5" stroke="white" stroke-width="1.3"/><path d="M8.5 8.5l2 2" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+                Look Up
+              </button>
+            </div>
+          </div>
+          <div id="iso-result"></div>
+        </div>
+      </div>
+
+      <!-- ── Tool: SWIFT Decoder -->
+      <div class="fs-panel" id="tool-swift-decode">
+        <div class="fs-tool-header">
+          <div class="fs-tool-title">🌐 SWIFT Message Decoder</div>
+          <div class="fs-tool-sub">Decodes MT103/MT202/MT940 messages and explains each field in plain English.</div>
+        </div>
+        <div class="fs-body">
+          <div class="input-card">
+            <div class="input-card-head">SWIFT Message
+              <div class="qfill">
+                <span class="qf-chip" onclick="fillSwift('mt103')">MT103 Sample</span>
+                <span class="qf-chip" onclick="fillSwift('mt202')">MT202 Sample</span>
+                <span class="qf-chip" onclick="fillSwift('mt940')">MT940 Sample</span>
+              </div>
+            </div>
+            <div style="padding:0">
+              <textarea class="fs-textarea" id="swift-input" style="min-height:160px" placeholder="{1:F01BCEYLKLXXXX0000000000}
+{2:I103BOFAUS3NXXXXN}
+{4:
+:20:REF20240315001
+:23B:CRED
+:32A:240315USD10000,00
+:50A:BCEYLKLXXXX
+:57A:BOFAUS3N
+:59:/US64BOFA0001234567890
+JOHN DOE
+123 MAIN ST NEW YORK
+:70:PAYMENT FOR INVOICE INV-2024-001
+:71A:SHA
+-}"></textarea>
+            </div>
+            <div class="input-card-foot">
+              <span style="font-size:11px;color:var(--t3)">SWIFT Standards Release 2024</span>
+              <button class="btn btn-teal" id="btn-swift" onclick="runSwiftDecode()">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Decode Message
+              </button>
+            </div>
+          </div>
+          <div id="swift-result"></div>
+        </div>
+      </div>
+
+    </div><!-- /fs-main -->
+  </div><!-- /fs-layout -->
+</div><!-- /page-finsight -->
+
+<footer>
+  <span>Fin<em>.</em>Trace</span><span>·</span>
+  <span>ISO 8583 · ISO 20022 · SWIFT · PCI-DSS v4</span><span>·</span>
+  <span>Java / Spring · RAG Architecture</span>
+</footer>
+</div><!-- /app -->
+
+<!-- Sample modal -->
+<div class="overlay" id="overlay" onclick="closeSamples(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head"><div class="modal-title">📂 Sample Switch Code</div><button class="btn btn-outline btn-s" onclick="closeSamples()">✕ Close</button></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// PAGE & TOOL NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function switchPage(el){
+  document.querySelectorAll('.app-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  const pid='page-'+el.dataset.page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById(pid).classList.add('on');
+}
+function switchTool(el){
+  document.querySelectorAll('.fs-nav-item').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  const tid='tool-'+el.dataset.tool;
+  document.querySelectorAll('.fs-panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById(tid).classList.add('on');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SHARED HELPERS
+// ══════════════════════════════════════════════════════════════
+function getKey(){ return document.getElementById('global-key').value.trim(); }
+function getModel(){ return document.getElementById('sel-model').value; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function sc2col(v){ if(v===null||v===undefined)return'#6e88b0'; return v>=80?'#059669':v>=60?'#65a30d':v>=40?'#d97706':'#dc2626'; }
+
+let tT;
+function toast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(tT); tT=setTimeout(()=>el.classList.remove('show'),2700);
+}
+
+async function callLLM(prompt, btnId){
+  const key=getKey();
+  if(!key){toast('🔑 Enter your OpenRouter API key in the top bar.');return null;}
+  const btn=document.getElementById(btnId);
+  if(btn)btn.disabled=true;
+  try{
+    const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`,'HTTP-Referer':'https://jiat-finsight.epic.lk','X-Title':'FinTrace AI'},
+      body:JSON.stringify({model:getModel(),temperature:0.1,messages:[{role:'user',content:prompt}]}),
+    });
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`HTTP ${res.status}`);}
+    const data=await res.json();
+    return data.choices?.[0]?.message?.content||'';
+  }catch(e){toast('❌ '+e.message);return null;}
+  finally{if(btn)btn.disabled=false;}
+}
+
+function aiCard(title,ico,content,badges=[]){
+  const time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const badgeHTML=badges.length?`<div class="insight-badges">${badges.map(b=>`<span class="ibadge ${b.cls}">${b.t}</span>`).join('')}</div>`:'';
+  return `<div class="ai-card">
+    <div class="ai-card-head">
+      <div class="ai-head-ico">${ico}</div>
+      <span class="ai-head-label">${title}</span>
+      <span class="ai-head-time">${time}</span>
+    </div>
+    ${badgeHTML}
+    <div class="ai-card-body">${esc(content)}</div>
+  </div>`;
+}
+
+function loadingCard(msg='Generating AI response…'){
+  return `<div class="ai-card"><div class="ai-card-body" style="display:flex;align-items:center;gap:10px">
+    <div class="ld"><div class="ld-d"></div><div class="ld-d"></div><div class="ld-d"></div></div>
+    <span style="color:var(--t3);font-size:12px">${msg}</span>
+  </div></div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// TRANSACTION EXPLAINER
+// ══════════════════════════════════════════════════════════════
+const TXN_FILLS={
+  failed_balance:()=>{setFields({id:'TXN-20240315-004892',amount:25000,type:'TRANSFER',status:'FAILED',rc:'51',balance:12000,merchant:'COMMERCIAL BANK — TRANSFER',channel:'ONLINE',notes:''})},
+  timeout:()=>{setFields({id:'TXN-20240315-008341',amount:5000,type:'WITHDRAWAL',status:'TIMED_OUT',rc:'91',balance:45000,merchant:'ATM-EPIC-COLPETTY-01',channel:'ATM',notes:'Issuer did not respond within 30 seconds'})},
+  expired:()=>{setFields({id:'TXN-20240315-002114',amount:8500,type:'PURCHASE',status:'FAILED',rc:'54',balance:32000,merchant:'CARGILLS FOOD CITY — NUGEGODA',channel:'POS',notes:'Card expiry 02/24'})},
+  fraud:()=>{setFields({id:'TXN-20240315-009977',amount:95000,type:'TRANSFER',status:'FAILED',rc:'57',balance:98000,merchant:'UNKNOWN-BENE-SG-3391',channel:'ONLINE',notes:'New beneficiary, 3rd attempt in 10 minutes, different country'})},
+};
+function setFields(d){
+  document.getElementById('txn-id').value=d.id;
+  document.getElementById('txn-amount').value=d.amount;
+  document.getElementById('txn-type').value=d.type;
+  document.getElementById('txn-status').value=d.status;
+  document.getElementById('txn-rc').value=d.rc;
+  document.getElementById('txn-balance').value=d.balance;
+  document.getElementById('txn-merchant').value=d.merchant;
+  document.getElementById('txn-channel').value=d.channel;
+  document.getElementById('txn-notes').value=d.notes;
+}
+function fillTxn(k){TXN_FILLS[k]&&TXN_FILLS[k]();}
+
+async function runTxnExplain(){
+  const txn={
+    id:document.getElementById('txn-id').value||'N/A',
+    amount:'LKR '+document.getElementById('txn-amount').value,
+    type:document.getElementById('txn-type').value,
+    status:document.getElementById('txn-status').value,
+    responseCode:document.getElementById('txn-rc').value,
+    balance:'LKR '+document.getElementById('txn-balance').value,
+    merchant:document.getElementById('txn-merchant').value,
+    channel:document.getElementById('txn-channel').value,
+    notes:document.getElementById('txn-notes').value,
+  };
+  const audience=document.getElementById('txn-audience').value;
+  const audienceMap={developer:'technical developer who understands ISO 8583 and payment systems',support:'customer support agent — use plain language, avoid jargon',customer:'end customer — simple, empathetic, non-technical language'};
+
+  document.getElementById('txn-result').innerHTML=loadingCard('Generating transaction explanation…');
+
+  const prompt=`You are FinTrace AI, a fintech backend intelligence assistant for switch system. You understand ISO 8583, Sri Lankan banking, and payment processing deeply.
+
+Explain the following transaction to a ${audienceMap[audience]}.
+
+Transaction Data:
+${JSON.stringify(txn,null,2)}
+
+ISO 8583 Response Code Reference:
+- 00: Approved
+- 01: Refer to card issuer
+- 05: Do not honour
+- 12: Invalid transaction
+- 14: Invalid card number
+- 51: Insufficient funds/over credit limit
+- 54: Expired card
+- 57: Transaction not permitted to cardholder
+- 61: Exceeds withdrawal amount limit
+- 91: Issuer or switch is inoperative (timeout)
+- 96: System malfunction
+
+Provide:
+1. A clear, plain-English explanation of what happened
+2. The most likely root cause
+3. What the customer/developer should do next
+4. Any relevant ISO 8583 or payment protocol notes (if developer audience)
+
+Be concise, accurate, and empathetic where appropriate.`;
+
+  const resp=await callLLM(prompt,'btn-txn');
+  if(!resp){document.getElementById('txn-result').innerHTML='';return;}
+
+  const statusBadge=txn.status==='APPROVED'?{t:'✅ Approved',cls:'ibadge-g'}:txn.status==='FAILED'?{t:'❌ Failed',cls:'ibadge-r'}:{t:'⏳ '+txn.status,cls:'ibadge-a'};
+  const rcBadge=txn.responseCode?{t:'F39: '+txn.responseCode,cls:'ibadge-b'}:null;
+  const badges=[statusBadge,rcBadge,{t:txn.channel,cls:'ibadge-p'}].filter(Boolean);
+  document.getElementById('txn-result').innerHTML=aiCard('FinSight AI — Transaction Explanation','🧾',resp,badges);
+}
+
+// ══════════════════════════════════════════════════════════════
+// FRAUD / RISK ANALYZER
+// ══════════════════════════════════════════════════════════════
+const FRAUD_FILLS={
+  velocity:'{\n  "transactions": [\n    { "id": "T001", "amount": 5000, "time": "02:14", "merchant": "ATM-EPIC-001", "country": "LK" },\n    { "id": "T002", "amount": 5000, "time": "02:16", "merchant": "ATM-EPIC-002", "country": "LK" },\n    { "id": "T003", "amount": 5000, "time": "02:18", "merchant": "ATM-EPIC-003", "country": "LK" },\n    { "id": "T004", "amount": 5000, "time": "02:19", "merchant": "ATM-EPIC-004", "country": "LK" }\n  ],\n  "customer_profile": { "daily_limit": 10000, "usual_count_per_day": 2 }\n}',
+  new_bene:'{\n  "transaction": { "id": "T005", "amount": 95000, "type": "TRANSFER", "beneficiary": "UNKNOWN_ACC_SG_991122", "time": "23:47", "channel": "ONLINE" },\n  "customer_profile": { "known_beneficiaries": ["ACC-LK-001", "ACC-LK-002"], "usual_transfer_max": 20000 }\n}',
+  odd_time:'{\n  "transaction": { "id": "T006", "amount": 75000, "type": "PURCHASE", "merchant": "ONLINE-MERCHANT-US", "time": "03:22", "channel": "ONLINE" },\n  "customer_profile": { "usual_hours": "08:00-22:00", "usual_online_max": 15000, "country": "LK" }\n}',
+  geo:'{\n  "transactions": [\n    { "id": "T007", "time": "10:05", "country": "LK", "city": "Colombo", "amount": 3000 },\n    { "id": "T008", "time": "10:47", "country": "SG", "city": "Singapore", "amount": 8000 }\n  ],\n  "note": "Same card used in two countries 42 minutes apart"\n}',
+};
+function fillFraud(k){if(FRAUD_FILLS[k])document.getElementById('fraud-input').value=FRAUD_FILLS[k];}
+
+async function runFraud(){
+  const input=document.getElementById('fraud-input').value.trim();
+  if(!input){toast('⚠️ Paste transaction data first.');return;}
+  const framework=document.getElementById('fraud-framework').value;
+  document.getElementById('fraud-result').innerHTML=loadingCard('Analyzing risk patterns…');
+
+  const prompt=`You are FinTrace, a fraud detection intelligence assistant for payment switch. You apply ${framework==='iso'?'ISO 8583 switch-level analysis':framework==='pci'?'PCI-DSS fraud indicator rules':'general fintech fraud detection'}.
+
+Analyze the following transaction data for suspicious patterns:
+
+${input}
+
+Provide a structured analysis:
+1. RISK LEVEL: (Critical / High / Medium / Low) with a brief one-line reason
+2. SUSPICIOUS PATTERNS DETECTED: List each pattern with explanation (e.g., velocity attack, geographic impossibility, unusual amount, new beneficiary risk, odd-hour activity)
+3. REASONING: Explain WHY each pattern is suspicious — not just a score, but reasoned logic
+4. RECOMMENDED ACTION: (Block / Flag for review / Monitor / Allow with alert)
+5. SUGGESTED RULE: A concrete rule that could prevent this in the switch (e.g., "Block more than 3 ATM withdrawals from same card within 10 minutes")
+
+Be specific and reference actual payment fraud typologies where applicable.`;
+
+  const resp=await callLLM(prompt,'btn-fraud');
+  if(!resp){document.getElementById('fraud-result').innerHTML='';return;}
+
+  const riskLevel=resp.match(/RISK LEVEL[:\s]*(Critical|High|Medium|Low)/i)?.[1]||'Unknown';
+  const riskBadge={Critical:{t:'🚨 Critical Risk',cls:'ibadge-r'},High:{t:'⚠️ High Risk',cls:'ibadge-r'},Medium:{t:'🟡 Medium Risk',cls:'ibadge-a'},Low:{t:'🟢 Low Risk',cls:'ibadge-g'}}[riskLevel]||{t:'Risk Analyzed',cls:'ibadge-b'};
+  document.getElementById('fraud-result').innerHTML=aiCard('FinSight AI — Risk Analysis','🚨',resp,[riskBadge,{t:framework.toUpperCase(),cls:'ibadge-p'}]);
+}
+
+// ══════════════════════════════════════════════════════════════
+// API ERROR DEBUGGER
+// ══════════════════════════════════════════════════════════════
+const ERR_FILLS={
+  npe:`HTTP 500 — Internal Server Error\nPOST /api/v1/payment/authorize\n\njava.lang.NullPointerException: Cannot invoke "com.epic.switch.model.Account.getBalance()" because account is null\n  at com.epic.switch.service.AuthorizationService.processAuth(AuthorizationService.java:87)\n  at com.epic.switch.controller.SwitchController.authorize(SwitchController.java:42)\n  at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\nCaused by: account lookup returned null for cardNumber=4111111111111111`,
+  db:`HTTP 503 — Service Unavailable\nPOST /api/v1/payment/settle\n\norg.springframework.dao.DataAccessResourceFailureException: Unable to acquire JDBC Connection\n  at com.epic.switch.repo.TransactionRepository.save(TransactionRepository.java:34)\nCaused by: com.zaxxer.hikari.pool.HikariPool$PoolInitializationException: Failed to initialize pool: Connection to localhost:3306 refused\n  HikariPool-1 - Connection is not available, request timed out after 30000ms`,
+  timeout:`HTTP 504 — Gateway Timeout\nPOST /api/v1/payment/authorize\n\nRequest to issuer bank timed out after 30000ms\nSTAN: 009834 | RRN: 240315009834\nNo reversal triggered. Transaction left in PENDING state.\n2024-03-15 03:15:44 WARN [switch-core] IssuerConnector - Read timeout exceeded`,
+  iso:`com.epic.switch.iso.ISOException: Failed to parse ISO 8583 message\n  Field 39 (Response Code): Expected length 2, got 3 characters '000'\n  at org.jpos.iso.ISOBasePackager.unpack(ISOBasePackager.java:145)\n  at com.epic.switch.handler.ResponseHandler.handle(ResponseHandler.java:67)\nRaw bytes: 30 31 31 30 ... 30 30 30`,
+};
+function fillError(k){if(ERR_FILLS[k])document.getElementById('error-input').value=ERR_FILLS[k];}
+
+async function runApiDebug(){
+  const error=document.getElementById('error-input').value.trim();
+  if(!error){toast('⚠️ Paste an error or stack trace first.');return;}
+  const endpoint=document.getElementById('err-endpoint').value;
+  const service=document.getElementById('err-service').value;
+  document.getElementById('error-result').innerHTML=loadingCard('Analyzing error and generating fix…');
+
+  const prompt=`You are FinTrace, a Java/Spring payment switch backend debugging expert. You specialize in ISO 8583, jPOS, Spring Boot, HikariCP, and payment system failures.
+
+Debug the following error in a fintech payment switch context:
+
+Endpoint: ${endpoint||'Not specified'}
+Service/Component: ${service||'Not specified'}
+Error:
+${error}
+
+Provide:
+1. ROOT CAUSE: The most likely underlying cause (be specific — not generic)
+2. EXPLANATION: What exactly went wrong in the payment flow
+3. PAYMENT IMPACT: What happened to the transaction (was it approved/declined/left pending? Is a reversal needed?)
+4. FIX: Concrete Java/Spring code fix or configuration change
+5. PREVENTION: How to prevent this in production (defensive coding, monitoring, circuit breaker, etc.)
+
+Reference specific Spring Boot / jPOS / ISO 8583 best practices where applicable.`;
+
+  const resp=await callLLM(prompt,'btn-err');
+  if(!resp){document.getElementById('error-result').innerHTML='';return;}
+
+  const isTimeout=error.toLowerCase().includes('timeout');
+  const isNPE=error.toLowerCase().includes('nullpointer');
+  const isDB=error.toLowerCase().includes('jdbc')||error.toLowerCase().includes('connection');
+  const badge=isNPE?{t:'NullPointerException',cls:'ibadge-r'}:isTimeout?{t:'Timeout',cls:'ibadge-a'}:isDB?{t:'DB Connection',cls:'ibadge-r'}:{t:'Runtime Error',cls:'ibadge-r'};
+  document.getElementById('error-result').innerHTML=aiCard('FinSight AI — Error Analysis','🔌',resp,[badge,{t:'Java/Spring',cls:'ibadge-b'},{t:'ISO 8583',cls:'ibadge-p'}]);
+}
+
+// ══════════════════════════════════════════════════════════════
+// LOG ANALYZER
+// ══════════════════════════════════════════════════════════════
+const LOG_FILLS={
+  spring:`2024-03-15 02:14:33.221 ERROR [switch-core] AuthorizationService - Issuer timeout after 30000ms for STAN=001234\n2024-03-15 02:14:33.225 WARN  [switch-core] ReverseService - Reversal NOT triggered for STAN=001234\n2024-03-15 02:14:33.890 ERROR [switch-core] ISOPackager - Field 39 parse error: unexpected length 3 expected 2\n2024-03-15 02:14:35.001 INFO  [HikariPool-1] - Connection is not available, request timed out after 30000ms\n2024-03-15 02:14:36.441 ERROR [switch-core] TransactionRouter - No route found for BIN 458900\n2024-03-15 02:14:37.002 WARN  [switch-core] AuthorizationService - Duplicate STAN detected: 001234 within settlement window`,
+  switch:`[2024-03-15 02:00:01] TXN_IN  | MTI=0100 | STAN=008831 | F2=411111****1111 | F4=000000050000 | F41=TERM001 | F49=144\n[2024-03-15 02:00:01] ROUTE   | BIN=411111 | Acquirer=EPIC_ACQ_01 | Latency=2ms\n[2024-03-15 02:00:32] TIMEOUT | STAN=008831 | Issuer=EPIC_ISS | Elapsed=30001ms\n[2024-03-15 02:00:32] WARN    | No reversal sent for STAN=008831\n[2024-03-15 02:00:32] TXN_OUT | MTI=0110 | STAN=008831 | F39=91 | Result=ISSUER_UNAVAILABLE`,
+  gc:`2024-03-15 03:00:01.002 GC [GCTaskThread] - Full GC — Pause 4.231s\n2024-03-15 03:00:05.234 WARN [switch-core] - Thread pool queue depth: 842 (threshold: 500)\n2024-03-15 03:00:05.240 ERROR [switch-core] - Request processing delayed 4800ms\n2024-03-15 03:00:07.001 INFO [HikariPool-1] - Evicting connection due to inactivity\n2024-03-15 03:00:09.551 WARN [switch-core] - ISO message queue backlog: 1240 messages`,
+};
+function fillLog(k){if(LOG_FILLS[k])document.getElementById('log-input').value=LOG_FILLS[k];}
+
+async function runLogAnalyze(){
+  const logs=document.getElementById('log-input').value.trim();
+  if(!logs){toast('⚠️ Paste some log output first.');return;}
+  const source=document.getElementById('log-source').value;
+  const window=document.getElementById('log-window').value;
+  document.getElementById('log-result').innerHTML=loadingCard('Parsing and analyzing logs…');
+
+  const prompt=`You are FinTrace, a payment switch log analysis expert. You understand Spring Boot logs, jPOS switch logs, HikariCP, and ISO 8583 message flows.
+
+Analyze the following ${source} logs${window?' from '+window:''}:
+
+${logs}
+
+Provide a structured analysis:
+1. SUMMARY: 2-3 sentence summary of what's happening in the system
+2. CRITICAL EVENTS: List each critical event with timestamp, what it means, and impact
+3. PATTERNS: Any recurring patterns or sequences that indicate systemic issues
+4. TRANSACTION IMPACT: Which transactions were affected and how (pending, failed, missing reversals)
+5. ROOT CAUSE HYPOTHESIS: Most likely underlying system issue causing these log events
+6. IMMEDIATE ACTION: What the on-call engineer should do right now
+7. MONITORING: What metrics/alerts to set up to catch this earlier
+
+Format clearly with section headers. Be specific and actionable.`;
+
+  const resp=await callLLM(prompt,'btn-log');
+  if(!resp){document.getElementById('log-result').innerHTML='';return;}
+
+  const hasError=logs.toLowerCase().includes('error');
+  const hasWarn=logs.toLowerCase().includes('warn');
+  const badges=[hasError?{t:'Errors Detected',cls:'ibadge-r'}:null,hasWarn?{t:'Warnings Found',cls:'ibadge-a'}:null,{t:source,cls:'ibadge-b'}].filter(Boolean);
+  document.getElementById('log-result').innerHTML=aiCard('FinSight AI — Log Analysis','📊',resp,badges);
+}
+
+// ══════════════════════════════════════════════════════════════
+// ISO 8583 LOOKUP
+// ══════════════════════════════════════════════════════════════
+const ISO_FILLS={
+  f39:'What are all the ISO 8583 response codes (Field 39) and what does each one mean for a card switch? Include codes 00, 01, 05, 12, 14, 51, 54, 57, 61, 91, 96.',
+  f55:'Explain ISO 8583 Field 55 (EMV data). What format is it? What EMV tags does it contain? How should a switch parse it in Java?',
+  mti0100:'What are ALL the mandatory fields for an ISO 8583 0100 (Authorization Request) message? List each field number, name, format, and why it is required.',
+  mac:'Explain how MAC (Message Authentication Code) works in ISO 8583. What fields are F64 and F128? How is it calculated using 3DES or AES CMAC? Show a Java example.',
+  rc51:'Explain ISO 8583 response code 51 (Insufficient Funds). When exactly is it returned? What should the switch do when it receives it? What should be logged?',
+};
+function fillISO(k){if(ISO_FILLS[k])document.getElementById('iso-input').value=ISO_FILLS[k];}
+
+async function runISOLookup(){
+  const query=document.getElementById('iso-input').value.trim();
+  if(!query){toast('⚠️ Enter a question about ISO 8583.');return;}
+  document.getElementById('iso-result').innerHTML=loadingCard('Looking up ISO 8583 reference…');
+
+  const prompt=`You are FinTrace, an ISO 8583:2003 expert assistant for CEFT payment switch team using Java/jPOS. Answer the following question with precise, accurate, technical detail.
+
+Question: ${query}
+
+Provide accurate ISO 8583 information. Include:
+- Exact field numbers, names, and formats
+- LLVAR/LLLVAR/fixed length details
+- Encoding (BCD, ASCII, Binary)
+- Code tables where relevant
+- Java/jPOS code examples where helpful
+- Mandatory vs conditional vs optional classification
+
+Be precise and technical. This is for professional switch developers.`;
+
+  const resp=await callLLM(prompt,'btn-iso');
+  if(!resp){document.getElementById('iso-result').innerHTML='';return;}
+  document.getElementById('iso-result').innerHTML=aiCard('FinSight AI — ISO 8583 Reference','📋',resp,[{t:'ISO 8583:2003',cls:'ibadge-b'},{t:'EMV 4.3',cls:'ibadge-p'},{t:'jPOS',cls:'ibadge-g'}]);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SWIFT DECODER
+// ══════════════════════════════════════════════════════════════
+const SWIFT_FILLS={
+  mt103:'{1:F01BCEYLKLXXXX0000000000}\n{2:I103BOFAUS3NXXXXN}\n{4:\n:20:REF20240315001\n:23B:CRED\n:32A:240315USD10000,00\n:50A:BCEYLKLXXXX\n:57A:BOFAUS3N\n:59:/US64BOFA0001234567890\nJOHN DOE\n123 MAIN ST NEW YORK\n:70:PAYMENT FOR INVOICE INV-2024-001\n:71A:SHA\n-}',
+  mt202:'{1:F01BCEYLKLXXXX0000000001}\n{2:I202BOFAUS3NXXXXN}\n{4:\n:20:COV20240315002\n:21:REF20240315001\n:32A:240315USD10000,00\n:58A:BOFAUS3N\n-}',
+  mt940:'{1:F01BCEYLKLXXXX0000000002}\n{2:O9400900240315}\n{4:\n:20:STMT240315001\n:25:BCEYLKLXXXX/0001234567\n:28C:00001/001\n:60F:C240314LKR500000,00\n:61:2403150315DR25000,00NTRFREF001//EPIC001\n:86:TRANSFER TO COMMERCIAL BANK\n:62F:C240315LKR475000,00\n-}',
+};
+function fillSwift(k){if(SWIFT_FILLS[k])document.getElementById('swift-input').value=SWIFT_FILLS[k];}
+
+async function runSwiftDecode(){
+  const msg=document.getElementById('swift-input').value.trim();
+  if(!msg){toast('⚠️ Paste a SWIFT message first.');return;}
+  document.getElementById('swift-result').innerHTML=loadingCard('Decoding SWIFT message…');
+
+  const prompt=`You are FinTrace, a SWIFT messaging expert for CEFT. Decode the following SWIFT message and explain every field in plain English.
+
+SWIFT Message:
+${msg}
+
+Provide:
+1. MESSAGE TYPE: Identify the MT type and its purpose
+2. HEADER BLOCK ANALYSIS: Explain blocks {1}, {2}, {3} if present
+3. FIELD-BY-FIELD EXPLANATION: For each field (e.g., :20:, :32A:, :57A:), explain:
+   - Field name and number
+   - The value and what it means
+   - Any validation rules
+   - Flags if any field looks incorrect
+4. TRANSACTION SUMMARY: A plain-English summary of what this message instructs
+5. COMPLIANCE NOTES: Any missing mandatory fields, gpi UETR if absent, AML considerations
+
+Be precise and reference SWIFT Standards Release 2024.`;
+
+  const resp=await callLLM(prompt,'btn-swift');
+  if(!resp){document.getElementById('swift-result').innerHTML='';return;}
+
+  const mtMatch=msg.match(/[IO](\d{3})/);
+  const mtType=mtMatch?'MT'+mtMatch[1]:'SWIFT';
+  document.getElementById('swift-result').innerHTML=aiCard('FinSight AI — SWIFT Decoder','🌐',resp,[{t:mtType,cls:'ibadge-t'},{t:'SWIFT 2024',cls:'ibadge-b'}]);
+}
+
+let analyzerMode='full_switch', lastResult=null, ldT;
+
+const PROTO_RULES={
+  iso8583:[{cls:'tp-iso',t:'MTI 0100/0110/0200/0210/0400/0410'},{cls:'tp-iso',t:'F2·F3·F4·F7·F11·F37·F38·F39·F52·F55·F64'},{cls:'tp-iso',t:'Bitmap'},{cls:'tp-pci',t:'PIN Block ISO 9564'},{cls:'tp-java',t:'jPOS/ISO4J'}],
+  iso20022:[{cls:'tp-swift',t:'pacs.008/009/002'},{cls:'tp-swift',t:'pain.001/camt.053'},{cls:'tp-iso',t:'BIC/IBAN'},{cls:'tp-iso',t:'XML Namespace'},{cls:'tp-pci',t:'PCI-DSS'}],
+  swift:[{cls:'tp-swift',t:'MT103/MT202/MT900/MT940'},{cls:'tp-swift',t:'F20/32A/50A/57A/59A'},{cls:'tp-iso',t:'BIC Validation'},{cls:'tp-pci',t:'AML/Sanctions'},{cls:'tp-swift',t:'gpi UETR'}],
+  all:[{cls:'tp-iso',t:'ISO 8583'},{cls:'tp-swift',t:'ISO 20022'},{cls:'tp-swift',t:'SWIFT MT/MX'},{cls:'tp-pci',t:'PCI-DSS v4'},{cls:'tp-java',t:'Java/Spring'}],
+};
+function updateProto(){
+  const p=document.getElementById('sel-proto').value;
+  document.getElementById('proto-tags').innerHTML=(PROTO_RULES[p]||PROTO_RULES.all).map(r=>`<span class="pb-tag ${r.cls}">${r.t}</span>`).join('');
+}
+function syncPill(){const v=document.getElementById('sel-model').value;document.getElementById('pill-txt').textContent=v.split('/').pop().replace(':free','');}
+function pickMode(el){document.querySelectorAll('.mt').forEach(t=>t.classList.remove('on'));el.classList.add('on');analyzerMode=el.dataset.m;}
+function onCode(ta){
+  const n=ta.value?ta.value.split('\n').length:0;
+  document.getElementById('st-l').textContent=n+(n!==1?' lines':' line');
+  document.getElementById('st-c').textContent=ta.value.length+' chars';
+}
+function clearCode(){document.getElementById('code-input').value='';onCode(document.getElementById('code-input'));showState('e');}
+
+function showState(s){
+  document.getElementById('st-e').style.display=s==='e'?'':'none';
+  document.getElementById('st-l').style.display=s==='l'?'':'none';
+  const r=document.getElementById('st-r'); r.style.display=s==='r'?'flex':'none';
+  document.getElementById('r-acts').style.display=s==='r'?'':'none';
+}
+
+const LMS=[
+  ['Parsing Java/Spring code…','Loading Switch domain rules'],
+  ['Checking ISO 8583 field presence…','Validating MTI and mandatory fields'],
+  ['Auditing ISO 20022 schema…','Verifying pacs/pain/camt structure'],
+  ['Scanning SWIFT message fields…','Checking MT103/202 field validity'],
+  ['Running PCI-DSS v4 audit…','Checking Req 3.3/4.2/6.3/8.3'],
+  ['Analyzing transaction flow…','Checking reversals and duplicate detection'],
+  ['Profiling TPS bottlenecks…','Detecting thread-safety and N+1 issues'],
+];
+function startLoader(){
+  let i=0;clearInterval(ldT);
+  function tick(){const[h,p]=LMS[i++%LMS.length];document.getElementById('ld-h').textContent=h;document.getElementById('ld-p').textContent=p;}
+  tick();ldT=setInterval(tick,1700);
+}
+
+// Full prompt from previous version (abbreviated here, full logic retained)
+function buildAnalyzerPrompt(code,proto,m){
+  return `You are a senior Java/Spring payment switch engineer with deep expertise in jPOS, ISO 8583:2003, ISO 20022, SWIFT MT/MX, PCI-DSS v4.0, and high-TPS Java systems. You are analyzing code for a CEFT payment switch.
+
+Protocol context: ${document.getElementById('sel-proto').options[document.getElementById('sel-proto').selectedIndex].text}
+Analysis mode: ${m}
+
+Perform a thorough audit covering:
+1. JAVA/SPRING ISSUES — typos in identifiers, null safety, resource leaks, @Transactional misuse, thread safety (synchronized blocks, non-atomic counters, ArrayList vs ConcurrentHashMap)
+2. ISO 8583 — MTI validity, mandatory fields per message type (0100 needs F2/F3/F4/F7/F11/F22/F25/F35/F41/F42/F49; 0110 needs F2/F3/F4/F7/F11/F12/F13/F37/F38/F39; 0400 needs F2/F3/F4/F7/F11/F37/F39/F56), bitmap, STAN/RRN uniqueness, MAC (F64/F128), response code validity
+3. ISO 20022 — XXE injection (disable external entity parsing), schema validation, IBAN MOD97, BIC format, BigDecimal for amounts, pacs.002 generation
+4. SWIFT — MT103/202 mandatory fields, BIC country code, F32A BigDecimal, UETR/gpi, AML screening hook, duplicate detection
+5. PCI-DSS v4 — Req 3.3.1 (CVV not stored), 3.4.1 (PAN masked in logs), 4.2.1 (no HTTP), 6.3.1 (SQL injection), 6.3.3 (hardcoded keys), 8.3.6 (MD5/SHA1/DES banned), PIN block ISO 9564
+6. TXN FLOW — reversal on timeout, idempotency, duplicate detection, response code propagation, @Transactional scope, F56 in reversals
+7. TPS/PERF — synchronized hot path, N+1 DB queries, DriverManager vs HikariCP, Caffeine cache for BIN/routing, RestTemplate timeouts, Resilience4j circuit breaker, AtomicInteger
+
+CODE:
+\`\`\`java
+${code}
+\`\`\`
+
+Reply ONLY with valid JSON. No markdown fences, no extra text:
+{
+  "language": "Java / Spring",
+  "protocol": "detected protocol(s)",
+  "score": <0-100>,
+  "summary": "one precise sentence",
+  "metrics": { "critical": <n>, "bugs": <n>, "warnings": <n>, "suggestions": <n>, "lines": <n> },
+  "compliance": { "pci_dss": <0-100 or null>, "iso8583": <0-100 or null>, "iso20022": <0-100 or null>, "swift": <0-100 or null>, "tps_ready": <0-100 or null> },
+  "sections": [
+    {
+      "id": "string", "title": "string", "type": "critical|error|warning|info|success", "icon": "emoji",
+      "issues": [
+        { "type": "critical|error|warning|info|success", "title": "string", "description": "string", "line": "number or null", "spec": "e.g. PCI-DSS Req 3.3.1 or ISO 8583 F37", "fix": "Java code fix", "risk": "Critical|High|Medium|Low|Info" }
+      ]
+    }
+  ],
+  "fixedCode": "corrected Java code or null"
+}`;
+}
+
+async function runAnalysis(){
+  const code=document.getElementById('code-input').value.trim();
+  if(!code){toast('⚠️ Paste switch code first.');return;}
+  const key=getKey();
+  if(!key){toast('🔑 Enter your OpenRouter API key in the top bar.');return;}
+  const model=getModel();
+  const proto=document.getElementById('sel-proto').value;
+  document.getElementById('btn-go').disabled=true;
+  showState('l');startLoader();
+  try{
+    const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`,'HTTP-Referer':'https://jiat-switch.epic.lk','X-Title':'FinTrace Code Analyzer'},
+      body:JSON.stringify({model,temperature:0.05,messages:[{role:'user',content:buildAnalyzerPrompt(code,proto,analyzerMode)}]}),
+    });
+    clearInterval(ldT);
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`HTTP ${res.status}`);}
+    const data=await res.json();
+    let raw=data.choices?.[0]?.message?.content||'';
+    raw=raw.replace(/^```json\s*/i,'').replace(/^```/,'').replace(/```\s*$/,'').trim();
+    let result;
+    try{result=JSON.parse(raw);}catch{const m=raw.match(/\{[\s\S]*\}/);if(m)result=JSON.parse(m[0]);else throw new Error('Could not parse response.');}
+    lastResult=result;renderResults(result);showState('r');toast('✅ Switch audit complete!');
+  }catch(e){clearInterval(ldT);showState('e');toast('❌ '+e.message);}
+  finally{document.getElementById('btn-go').disabled=false;}
+}
+
+const TM={critical:{c:'c-r',d:'d-r',ic:'ic-r',b:'b-r',l:'Critical'},error:{c:'c-r',d:'d-r',ic:'ic-r',b:'b-r',l:'Error'},warning:{c:'c-a',d:'d-a',ic:'ic-a',b:'b-a',l:'Warning'},info:{c:'c-b',d:'d-b',ic:'ic-b',b:'b-b',l:'Info'},success:{c:'c-g',d:'d-g',ic:'ic-g',b:'b-g',l:'OK'}};
+const RISK_C={Critical:'c-r',High:'c-r',Medium:'c-a',Low:'c-b',Info:'c-t'};
+function tm(t){return TM[t]||TM.info;}
+
+function renderResults(r){
+  const sc=Math.min(100,Math.max(0,r.score||0));
+  const circ=2*Math.PI*32,off=circ-(sc/100)*circ;
+  const col=sc2col(sc);
+  const scl=sc>=80?'c-g':sc>=60?'':sc>=40?'c-a':'c-r';
+  const slb=sc>=80?'Compliant':sc>=60?'Acceptable':sc>=40?'Needs Work':'Critical Issues';
+  const m=r.metrics||{};const cmp=r.compliance||{};
+  let h='';
+
+  h+=`<div class="sc-card">
+    <div class="sring"><svg width="68" height="68" viewBox="0 0 68 68">
+      <circle cx="34" cy="34" r="32" stroke="${sc>=80?'#d1fae5':sc>=60?'#d9f99d':sc>=40?'#fef3c7':'#fee2e2'}" stroke-width="6" fill="none"/>
+      <circle cx="34" cy="34" r="32" stroke="${col}" stroke-width="6" fill="none" stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" stroke-linecap="round" style="transition:stroke-dashoffset 1.1s ease"/>
+    </svg><div class="snum" style="color:${col}">${sc}</div></div>
+    <div class="sinfo">
+      <div class="slabel" style="color:${col}">${slb}</div>
+      <div class="ssumm">${esc(r.summary||'')}${r.protocol?` <span style="color:var(--teal);font-size:10px">[${esc(r.protocol)}]</span>`:''}</div>
+      <div class="stags">
+        <span class="stag b-t">${esc(r.language||'Java')}</span>
+        ${(m.critical||0)>0?`<span class="stag b-r">🚨 ${m.critical} critical</span>`:''}
+        ${(m.bugs||0)>0?`<span class="stag b-r">${m.bugs} bug${m.bugs!==1?'s':''}</span>`:''}
+        ${(m.warnings||0)>0?`<span class="stag b-a">${m.warnings} warn</span>`:''}
+        ${(m.suggestions||0)>0?`<span class="stag b-g">${m.suggestions} tip${m.suggestions!==1?'s':''}</span>`:''}
+      </div>
+    </div>
+  </div>`;
+
+  const cmpItems=[{k:'pci_dss',l:'PCI-DSS v4'},{k:'iso8583',l:'ISO 8583'},{k:'iso20022',l:'ISO 20022'},{k:'swift',l:'SWIFT'},{k:'tps_ready',l:'TPS Ready'}].filter(x=>cmp[x.k]!==null&&cmp[x.k]!==undefined);
+  if(cmpItems.length){
+    h+=`<div class="cmp-grid" style="grid-template-columns:repeat(${Math.min(cmpItems.length,5)},1fr)">`;
+    cmpItems.forEach(item=>{const v=cmp[item.k],c=sc2col(v);h+=`<div class="cmp-card"><div class="cmp-top"><span class="cmp-name">${item.l}</span><span class="cmp-val" style="color:${c}">${v}</span></div><div class="cmp-bar"><div class="cmp-fill" style="width:${v}%;background:${c}"></div></div></div>`;});
+    h+=`</div>`;
+  }
+
+  h+=`<div class="mr">
+    <div class="mc"><div class="mn c-r">${m.critical||0}</div><div class="ml">Critical</div></div>
+    <div class="mc"><div class="mn c-r">${m.bugs||0}</div><div class="ml">Bugs</div></div>
+    <div class="mc"><div class="mn c-a">${m.warnings||0}</div><div class="ml">Warnings</div></div>
+    <div class="mc"><div class="mn" style="color:var(--t2)">${m.lines||'—'}</div><div class="ml">Lines</div></div>
+  </div>`;
+
+  (r.sections||[]).forEach((sec,si)=>{
+    const{ic,b}=tm(sec.type||'info');const n=(sec.issues||[]).length;
+    const iss=(sec.issues||[]).map(iss=>{
+      const it=tm(iss.type||'info');const rc=RISK_C[iss.risk]||'c-b';
+      return `<div class="iss"><div class="idot ${it.d}"></div><div class="ibody">
+        <div class="imeta"><span class="itype ${it.c}">${it.l}</span>${iss.line?`<span class="iln">L${esc(iss.line)}</span>`:''}${iss.spec?`<span class="ispec ${rc}" style="background:rgba(0,0,0,.04)">${esc(iss.spec)}</span>`:''}${iss.risk?`<span class="itag">${esc(iss.risk)}</span>`:''}</div>
+        <div class="ititle">${esc(iss.title)}</div>
+        <div class="idesc">${esc(iss.description)}</div>
+        ${iss.fix?`<div class="ifix">💡 ${esc(iss.fix)}</div>`:''}
+        ${iss.spec?`<div class="iref">📎 ${esc(iss.spec)}</div>`:''}
+      </div></div>`;
+    }).join('')||`<div class="iss"><div class="ibody"><div class="idesc" style="color:var(--t3)">No issues found.</div></div></div>`;
+    h+=`<div class="scard" style="animation-delay:${si*.05}s">
+      <div class="shead" onclick="tog(this)"><div class="sico ${ic}">${sec.icon||'📋'}</div><div class="stitle">${esc(sec.title)}</div>${n>0?`<span class="scnt ${b}">${n}</span>`:''}
+        <svg class="chev open" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div><div class="sbody open">${iss}</div></div>`;
+  });
+
+  if(r.fixedCode){
+    h+=`<div class="scard" style="animation-delay:${((r.sections||[]).length)*.05}s">
+      <div class="shead" onclick="tog(this)"><div class="sico ic-g">✅</div><div class="stitle">Fixed Code</div>
+        <button class="btn btn-teal btn-s" onclick="applyFix(event)" style="margin-right:4px">Apply Fix</button>
+        <svg class="chev" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div><div class="sbody"><pre class="fcode">${esc(r.fixedCode)}</pre></div></div>`;
+  }
+  document.getElementById('r-inner').innerHTML=h;
+}
+
+function tog(head){const b=head.nextElementSibling,ch=head.querySelector('.chev'),o=b.classList.contains('open');b.classList.toggle('open',!o);ch.classList.toggle('open',!o);}
+function applyFix(e){e.stopPropagation();if(lastResult?.fixedCode){document.getElementById('code-input').value=lastResult.fixedCode;onCode(document.getElementById('code-input'));toast('✅ Fixed code applied!');}}
+function copyRpt(){
+  if(!lastResult)return;
+  let t=`FinTrace\n${'─'.repeat(38)}\nScore: ${lastResult.score}/100 | Protocol: ${lastResult.protocol||'—'}\n${lastResult.summary}\n`;
+  (lastResult.sections||[]).forEach(s=>{t+=`\n▸ ${s.title}\n`;(s.issues||[]).forEach(i=>{t+=`  [${(i.risk||i.type||'').toUpperCase()}]${i.line?' L'+i.line+':':''} ${i.title}\n  ${i.description}\n${i.spec?'  Ref: '+i.spec+'\n':''}${i.fix?'  Fix: '+i.fix+'\n':''}\n`;});});
+  navigator.clipboard.writeText(t).then(()=>toast('📋 Report copied!'));
+}
+function expJSON(){
+  if(!lastResult)return;
+  const b=new Blob([JSON.stringify(lastResult,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='jiat-analysis.json';a.click();toast('💾 Exported!');
+}
+
+// ── Sample code modal
+const SAMPLES=[
+  {title:'ISO 8583 Authorization Handler',desc:'0100 handler with missing fields, PCI violations, and no reversal logic',tags:[{t:'ISO 8583',c:'tp-iso'},{t:'PCI',c:'tp-pci'},{t:'Java',c:'tp-java'}],
+   code:`@Service\npublic class AuthorizationService {\n    public ISOMsg processAuth(ISOMsg request) throws ISOException {\n        log.debug("Auth request: {}", request.toString()); // PCI: logs PAN\n        ISOMsg response = msgFactory.newMessage("0110");\n        response.set(2, request.getString(2));\n        response.set(3, request.getString(3));\n        response.set(4, request.getString(4));\n        // MISSING: Field 7, 37\n        response.set(11, request.getString(11));\n        response.set(39, "00"); // Hardcoded — logic error\n        transactionRepo.saveCVV(request.getString(261)); // PCI: stores CVV\n        double amount = Double.parseDouble(request.getString(4)); // Float precision\n        IssuerResponse r = issuer.authorize(request); // No timeout\n        return response; // No reversal on failure, no MAC\n    }\n}`},
+  {title:'PCI-DSS Critical Violations',desc:'Java service with 6 critical PCI-DSS v4 violations',tags:[{t:'PCI-DSS v4',c:'tp-pci'},{t:'Critical',c:'tp-pci'},{t:'Java',c:'tp-java'}],
+   code:`@Service\npublic class CardService {\n    private static final String AES_KEY = "1234567890abcdef"; // Req 6.3.3\n    private static final String DB_URL = "jdbc:mysql://prod:3306/cards?user=admin&password=Prod@2024";\n    \n    public void process(String pan, String cvv2, BigDecimal amount) {\n        log.info("Processing: PAN={}, CVV={}", pan, cvv2); // Req 3.4.1\n        cardRepo.save(new Card(pan, cvv2)); // Req 3.3.1\n        String q = "SELECT * FROM acc WHERE pan='" + pan + "'"; // Req 6.3.1\n        String hash = DigestUtils.md5Hex(pan); // Req 8.3.6\n        fetch("http://issuer.bank.com/auth?pan="+pan); // Req 4.2.1\n    }\n}`},
+  {title:'High-TPS Router Bottlenecks',desc:'Transaction router with synchronized bottleneck, N+1 queries, no pool',tags:[{t:'High-TPS',c:'tp-java'},{t:'Performance',c:'tp-java'},{t:'Spring',c:'tp-java'}],
+   code:`@Component\npublic class TransactionRouter {\n    private int requestCount = 0; // Race condition\n    \n    public synchronized RouteResult route(Transaction txn) throws Exception {\n        List<Route> routes = routeRepo.findAll(); // N+1: DB call per transaction\n        for (Route r : routes) {\n            if (r.getBin().contains(txn.getBin())) {\n                Connection conn = DriverManager.getConnection(DB_URL, "root", "pass"); // No pool\n                String result = restTemplate.postForObject(r.getUrl(), txn, String.class); // No timeout\n                requestCount++; // Not atomic\n                conn.close(); // Not in finally\n                return new RouteResult(r, result);\n            }\n        }\n        throw new Exception("No route"); // No circuit breaker, no reversal\n    }\n}`},
+];
+function openSamples(){
+  document.getElementById('modal-body').innerHTML=SAMPLES.map((s,i)=>`<div class="sample-btn" onclick="loadSample(${i})"><div class="sample-title">${s.title}</div><div class="sample-desc">${s.desc}</div><div class="sample-tags">${s.tags.map(t=>`<span class="stag-s ${t.c}">${t.t}</span>`).join('')}</div></div>`).join('');
+  document.getElementById('overlay').style.display='flex';
+}
+function closeSamples(e){if(!e||e.target===document.getElementById('overlay'))document.getElementById('overlay').style.display='none';}
+function loadSample(i){document.getElementById('code-input').value=SAMPLES[i].code;onCode(document.getElementById('code-input'));closeSamples();toast('✅ Sample loaded!');}
+
+// Init
+syncPill(); updateProto();
+</script>
+</body>
+</html>
