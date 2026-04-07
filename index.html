@@ -783,6 +783,7 @@
       flex: 1;
       min-height: 0;
       overflow: hidden;
+      height: 100%;
     }
 
     .rscroll {
@@ -1144,8 +1145,7 @@
 
     .sbody.open {
       display: block;
-      overflow: visible;
-      /* FIX: prevents any clipping of inner scrollable content (e.g. .fcode) */
+
     }
 
     /* Issue items — FIX #9: Left border color coding,
@@ -1742,9 +1742,10 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
       padding: 16px;
-      max-height: calc(100vh - 410px); /* Adjust 350px based on your header/footer height */
-  overflow-y: auto; 
-  min-height: 0;
+      max-height: calc(100vh - 410px);
+      /* Adjust 350px based on your header/footer height */
+      overflow-y: auto;
+      min-height: 0;
     }
 
     .field-group {
@@ -2219,6 +2220,39 @@
       }
     }
   </style>
+
+  <style>
+    /* ── 1. Grid must declare its own height so children can inherit it ── */
+    .ws {
+      height: 100%;
+    }
+
+    /* ── 2. Grid children need explicit height for the overflow chain to work ── */
+    .pane {
+      height: 100%;
+    }
+
+    /* ── 3. rscroll: ditch height:100% (breaks in flex context), keep flex:1 only ── */
+    .rscroll {
+      height: auto !important;
+      flex: 1 !important;
+      min-height: 0 !important;
+      overflow-y: auto !important;
+    }
+
+    /* ── 4. sbody.open must NOT be overflow:visible — it escapes the scroll box ── */
+    .sbody.open {
+      display: block;
+      overflow: hidden;
+    }
+
+    /* ── 5. fcode scrolls independently inside its own max-height ── */
+    .fcode {
+      overflow-y: auto;
+      overflow-x: auto;
+      max-height: 280px;
+    }
+  </style>
 </head>
 
 <body>
@@ -2402,7 +2436,7 @@
             </div>
           </div>
           <!-- Loading state -->
-          <div class="state" id="st-l" style="display:none">
+          <div class="state" id="st-loading" style="display:none">
             <div class="ld">
               <div class="ld-d"></div>
               <div class="ld-d"></div>
@@ -3109,13 +3143,19 @@ JOHN DOE
       document.getElementById('st-c').textContent = ta.value.length + ' chars';
     }
     function clearCode() { document.getElementById('code-input').value = ''; onCode(document.getElementById('code-input')); showState('e'); }
+
     function showState(s) {
-      document.getElementById('st-e').style.display = s === 'e' ? '' : 'none';
-      document.getElementById('st-l').style.display = s === 'l' ? '' : 'none';
-      // #st-r is a flex column container — must be display:flex, not just ''
-      document.getElementById('st-r').style.display = s === 'r' ? 'flex' : 'none';
-      document.getElementById('r-acts').style.display = s === 'r' ? '' : 'none';
+      const e = document.getElementById('st-e');
+      const l = document.getElementById('st-loading'); // renamed from st-l
+      const r = document.getElementById('st-r');
+      const acts = document.getElementById('r-acts');
+
+      e.style.display = s === 'e' ? 'flex' : 'none';
+      l.style.display = s === 'l' ? 'flex' : 'none';
+      r.style.display = s === 'r' ? 'flex' : 'none';
+      acts.style.display = s === 'r' ? 'inline-flex' : 'none';
     }
+
     const LMS = [
       ['Parsing Java / Spring code…', 'Loading Switch domain rules'],
       ['Checking ISO 8583 field presence…', 'Validating MTI and mandatory fields'],
