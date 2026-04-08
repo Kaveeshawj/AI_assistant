@@ -2240,18 +2240,30 @@
       overflow-y: auto !important;
     }
 
-    /* ── 4. sbody.open must NOT be overflow:visible — it escapes the scroll box ── */
     .sbody.open {
       display: block;
       overflow: hidden;
     }
 
-    /* ── 5. fcode scrolls independently inside its own max-height ── */
     .fcode {
       overflow-y: auto;
       overflow-x: auto;
       max-height: 280px;
     }
+
+    #sel-model {
+  color: #222; 
+}
+
+#sel-model option {
+  color: #222;
+  background-color: #fff;
+}
+
+#sel-model optgroup {
+  color: #555;
+  background-color: #eee;
+}
   </style>
 </head>
 
